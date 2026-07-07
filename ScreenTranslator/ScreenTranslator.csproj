@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Windows 10 SDK TFM gives direct access to Windows.Media.Ocr (Windows OCR) via CsWinRT -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>ScreenTranslator</RootNamespace>
+    <AssemblyName>KainoTranslator</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <Target Name="RemoveConflictingImplicitUsings" BeforeTargets="CoreCompile">
+    <!-- Combining WPF + WinForms (for the tray icon) makes several type names ambiguous
+         (Application, MouseEventArgs, KeyEventArgs, etc. exist in both System.Windows(.*) and
+         System.Windows.Forms). We always refer to WinForms types with their full name
+         explicitly (or via a "using X = ..." alias), so it's safe - and necessary - to drop
+         these from the implicit global usings to avoid CS0104 ambiguous-reference errors.
+         This runs as a Target (not a plain ItemGroup) so it executes *after* the SDK adds its
+         default implicit usings, which happens too late for a plain top-level <Using Remove>. -->
+    <ItemGroup>
+      <Using Remove="System.Windows.Forms" />
+      <Using Remove="System.Windows.Shapes" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <!-- Tesseract OCR engine (optional/legacy engine choice) -->
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+    <!-- Tesseract's core package dropped System.Drawing (Bitmap) interop for non-.NET-Framework
+         targets; this companion package adds PixConverter.ToPix(Bitmap) back for .NET 8. -->
+    <PackageReference Include="Tesseract.Drawing" Version="5.2.0" />
+    <!-- Needed for Bitmap/Graphics based screen capture on .NET (Windows-only usage here) -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Python\easyocr_worker.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+<Window x:Class="ScreenTranslator.Capture.RegionSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="KainoTranslator - выбор области"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="#01000000"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Cursor="Cross"
+        WindowStartupLocation="Manual">
+    <Grid>
+        <Canvas x:Name="RootCanvas" Background="Transparent">
+            <Rectangle x:Name="SelectionRect"
+                       Stroke="#FF37E0C8" StrokeThickness="2"
+                       Fill="#2237E0C8"
+                       Visibility="Collapsed"/>
+            <TextBlock x:Name="HintText"
+                       Foreground="White" FontSize="18" FontFamily="Segoe UI"
+                       Text="Выделите область с текстом для перевода  •  Esc — отмена"
+                       Canvas.Left="20" Canvas.Top="20"
+                       Background="#AA000000" Padding="10,6"/>
+        </Canvas>
+    </Grid>
+</Window>

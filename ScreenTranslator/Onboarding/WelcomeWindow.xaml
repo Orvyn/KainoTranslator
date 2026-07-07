@@ -1,0 +1,86 @@
+<Window x:Class="ScreenTranslator.Onboarding.WelcomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Добро пожаловать в KainoTranslator"
+        Width="540" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <StackPanel Margin="24">
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="🌐" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
+            <TextBlock Text="KainoTranslator" Style="{StaticResource H1}" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Text="Перевод текста с экрана в реальном времени — для игр, субтитров и не только."
+                   Style="{StaticResource Hint}" Margin="0,0,0,16" FontSize="13"/>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Программа работает через значок в трее" Style="{StaticResource H2}"/>
+                <TextBlock TextWrapping="Wrap" Style="{StaticResource Label}" Margin="0,0,0,0">
+                    Отдельного окна нет — приложение свернуто в значок рядом с часами (внизу справа,
+                    возможно под стрелочкой "Показать скрытые значки"). Кликните по нему правой кнопкой
+                    в любой момент, чтобы открыть меню.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Горячие клавиши" Style="{StaticResource H2}"/>
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Выбрать область экрана" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
+                    <TextBlock x:Name="HotkeyRegion" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Включить / выключить перевод" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
+                    <TextBlock x:Name="HotkeyToggle" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Перевести область один раз (не меняя основную область)" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
+                    <TextBlock x:Name="HotkeyOnce" Grid.Row="2" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Открыть настройки" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,0"/>
+                    <TextBlock x:Name="HotkeyOpenSettings" Grid.Row="3" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </Grid>
+                <TextBlock Style="{StaticResource Hint}" Text="Клавиши можно изменить в настройках. Работают даже когда игра открыта на весь экран." Margin="0,6,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Совет для игр" Style="{StaticResource H2}"/>
+                <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0">
+                    Запускайте игру в режиме «Оконный без рамки» (Borderless) — так перевод точно будет виден поверх игры.
+                    В режиме «Полноэкранный» (Fullscreen) окно перевода иногда может не отображаться.
+                    Обычно переключить режим можно клавишами Alt+Enter или в настройках графики игры.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Что выбрать по умолчанию?" Style="{StaticResource H2}"/>
+                <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0">
+                    Распознавание — <Run Text="Windows OCR" FontWeight="SemiBold"/> (уже включено, работает из коробки).
+                    Перевод — <Run Text="Google Translate" FontWeight="SemiBold"/> (тоже работает сразу, без ключа).
+                    Всё это можно поменять в настройках в любой момент.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <CheckBox x:Name="DontShowAgainCheck" Margin="0,4,0,14">
+            <TextBlock Text="Больше не показывать это окно" TextWrapping="Wrap"/>
+        </CheckBox>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Закрыть" Style="{StaticResource SecondaryButton}" Width="110" Height="34" Margin="0,0,8,0" Click="OnCloseClick"/>
+            <Button Content="Открыть настройки" Style="{StaticResource PrimaryButton}" Width="160" Height="34" Click="OnOpenSettingsClick"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
