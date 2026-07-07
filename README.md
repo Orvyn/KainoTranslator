@@ -133,12 +133,17 @@ isn't empty) spreads the load across different IPs.
 
 ## Performance notes
 
-- The polling interval (default 0.2s / 200 ms, **Settings > Перевод**, shown in seconds) controls
-  how often the capture area is re-checked.
+- The polling interval (default 0.3s, **Settings > Перевод**, shown in seconds) controls how
+  often the capture area is re-checked.
 - "Skip OCR/translation when the capture area hasn't visibly changed" (on by default) hashes a
   small downsampled version of each captured frame and skips OCR + the translator API call
   entirely when nothing changed — this is what keeps a fast polling interval cheap on both CPU
   and translation-API usage, since most subtitle/dialogue text sits still for a second or more.
+- Recognized text must read the same (ignoring trivial whitespace/formatting noise) on two
+  consecutive checks before it's translated - this stops the displayed translation from
+  flickering/changing due to a single noisy OCR read. As a side effect, subtitles that type out
+  gradually on screen are only translated once they stop changing, i.e. once they're fully
+  displayed - not a separate feature, just a natural consequence of the same stability check.
 - Repeated identical recognized text also skips a redundant translation call.
 - Perceived delay is mostly the OCR + translation network round-trip; Windows OCR is local and
   typically the fastest of the three engines, so it's the best choice when both speed and

@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using ScreenTranslator.Models;
 using ScreenTranslator.Ocr;
@@ -332,6 +333,21 @@ public partial class SettingsWindow : Window
 
         StatusText.Foreground = System.Windows.Media.Brushes.Gray;
         StatusText.Text = "Сохранено.";
+        ScheduleStatusTextClear();
+    }
+
+    private DispatcherTimer? _statusClearTimer;
+
+    private void ScheduleStatusTextClear()
+    {
+        _statusClearTimer?.Stop();
+        _statusClearTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _statusClearTimer.Tick += (_, _) =>
+        {
+            _statusClearTimer!.Stop();
+            StatusText.Text = "";
+        };
+        _statusClearTimer.Start();
     }
 
     private void ApplyUiToWorking()

@@ -45,6 +45,7 @@ public partial class App : Application
         RegisterHotkeys();
 
         SetupTrayIcon();
+        ShowBalloon(AppDisplayName, "Программа запущена и работает в трее.");
 
         if (_settings.ShowWelcomeOnStartup)
             ShowWelcomeWindow();
@@ -180,6 +181,7 @@ public partial class App : Application
             RegisterHotkeys();
             await _engine.ApplySettingsAsync(_settings);
         };
+        _settingsWindow.Closed += (_, _) => ShowBalloon(AppDisplayName, "Программа осталась запущена в трее.");
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
@@ -265,13 +267,8 @@ public partial class App : Application
 
     private void ShowAboutDialog()
     {
-        System.Windows.MessageBox.Show(
-            $"{AppDisplayName}\n\n" +
-            "Перевод текста с экрана в реальном времени — для игр, субтитров и других приложений.\n\n" +
-            "Распознавание текста: Windows OCR, Tesseract, EasyOCR.\n" +
-            "Перевод: DeepL, Google Translate, Yandex Translate, Papago.\n\n" +
-            "© 2026",
-            $"О программе — {AppDisplayName}", MessageBoxButton.OK, MessageBoxImage.Information);
+        var about = new Onboarding.AboutWindow();
+        about.ShowDialog();
     }
 
     private void ShowBalloon(string title, string text)

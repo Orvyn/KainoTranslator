@@ -68,16 +68,16 @@
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="Сервис перевода" Style="{StaticResource H2}"/>
-                            <ComboBox x:Name="TranslatorCombo" Margin="0,0,0,4" SelectionChanged="OnTranslatorChanged"/>
-                            <TextBlock x:Name="TranslatorHint" Style="{StaticResource Hint}"/>
+                            <TextBlock Text="Язык перевода" Style="{StaticResource H2}"/>
+                            <ComboBox x:Name="TargetLanguageCombo"/>
                         </StackPanel>
                     </Border>
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="Язык перевода" Style="{StaticResource H2}"/>
-                            <ComboBox x:Name="TargetLanguageCombo"/>
+                            <TextBlock Text="Сервис перевода" Style="{StaticResource H2}"/>
+                            <ComboBox x:Name="TranslatorCombo" Margin="0,0,0,4" SelectionChanged="OnTranslatorChanged"/>
+                            <TextBlock x:Name="TranslatorHint" Style="{StaticResource Hint}"/>
                         </StackPanel>
                     </Border>
 
@@ -271,7 +271,7 @@
             </TabItem>
 
             <!-- ===================== ДОПОЛНИТЕЛЬНО ===================== -->
-            <TabItem Header="⚙ Дополнительно">
+            <TabItem Header="⚙ Прочее">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
                     <Border Style="{StaticResource Card}">
