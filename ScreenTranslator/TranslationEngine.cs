@@ -31,12 +31,22 @@ public sealed class TranslationEngine : IDisposable
     private CancellationTokenSource? _cts;
     private long _lastFrameHash;
 
-    // Debounce state: a single noisy OCR read (a stray misrecognized character, extra space,
-    // etc.) used to cause the displayed translation to flicker/change even though the on-screen
-    // text hadn't really changed. Requiring the same (normalized) text to be read twice in a row
-    // before acting on it filters that out at the cost of one extra polling interval of delay.
-    private string? _pendingCandidate;
-    private string _lastCommittedText = "";
+    // Stability tracking. The goal is to tell apart two very different situations from the same
+    // stream of OCR reads:
+    //  - A "typewriter" subtitle that grows a little more with every poll: we want to wait for
+    //    it to *stop* growing before translating, so the translation doesn't flicker through
+    //    every partial sentence on the way.
+    //  - A cutscene line that appears already complete and may only be on screen for a second
+    //    or two: waiting around for "the same reading twice" can miss it entirely if it's gone
+    //    before a confirming read happens, so a genuinely new/unrelated reading (not a growth of
+    //    what we were already waiting on) is committed immediately instead of discarded.
+    private string? _pendingRawText;
+    private string? _pendingNormalized;
+    private string _lastCommittedNormalized = "";
+    private long _lastShownAtTicks;
+
+    private const double StableSimilarity = 0.92; // treat near-identical OCR reads as "the same"
+    private const int MinDisplayMs = 1200; // keep a short-lived translation on screen at least this long
 
     public TranslationEngine(AppSettings settings)
     {
@@ -70,8 +80,9 @@ public sealed class TranslationEngine : IDisposable
 
         IsRunning = true;
         _lastFrameHash = 0;
-        _lastCommittedText = "";
-        _pendingCandidate = null;
+        _lastCommittedNormalized = "";
+        _pendingRawText = null;
+        _pendingNormalized = null;
         _cts = new CancellationTokenSource();
         _ = RunLoopAsync(_cts.Token);
         RunningStateChanged?.Invoke(true);
@@ -131,32 +142,82 @@ public sealed class TranslationEngine : IDisposable
         var recognized = await _ocrEngine.RecognizeAsync(bitmap, _settings.SourceLanguageKey, ct);
         var normalized = SubtitleTextProcessor.NormalizeForComparison(recognized);
 
+        // --- Nothing on screen right now ---
         if (normalized.Length == 0)
         {
-            _pendingCandidate = null;
-            if (_lastCommittedText.Length > 0)
+            if (_pendingNormalized != null)
             {
-                _lastCommittedText = "";
+                // Something was mid-confirmation and just disappeared (a short cutscene flash) -
+                // translate what we had rather than silently dropping it.
+                var toCommit = _pendingRawText!;
+                _pendingRawText = null;
+                _pendingNormalized = null;
+                await CommitAsync(toCommit, ct);
+                return;
+            }
+
+            if (_lastCommittedNormalized.Length > 0 && ElapsedSinceShownMs() >= MinDisplayMs)
+            {
+                _lastCommittedNormalized = "";
                 TextUpdated?.Invoke("");
             }
             return;
         }
 
-        if (normalized == _lastCommittedText) return; // already showing this - nothing to do
+        // Already showing (near enough) this exact text - nothing to do.
+        if (SubtitleTextProcessor.Similarity(normalized, _lastCommittedNormalized) >= StableSimilarity)
+            return;
 
-        // Require the same reading twice in a row before committing to a (re)translation, so a
-        // single noisy OCR frame doesn't make the displayed text flicker/change unnecessarily.
-        if (normalized != _pendingCandidate)
+        // First time seeing this particular reading since the last commit - hold it for one
+        // more poll to see whether it's still being typed out before acting on it.
+        if (_pendingNormalized == null)
         {
-            _pendingCandidate = normalized;
+            _pendingRawText = recognized;
+            _pendingNormalized = normalized;
             return;
         }
 
-        _lastCommittedText = normalized;
-        _pendingCandidate = null;
+        var similarityToPending = SubtitleTextProcessor.Similarity(normalized, _pendingNormalized);
+        if (similarityToPending >= StableSimilarity)
+        {
+            // Stopped changing - safe to translate now.
+            _pendingRawText = null;
+            _pendingNormalized = null;
+            await CommitAsync(recognized, ct);
+            return;
+        }
 
-        var translated = await TranslateRecognizedTextAsync(recognized, ct);
-        if (!string.IsNullOrWhiteSpace(translated)) TextUpdated?.Invoke(translated);
+        if (SubtitleTextProcessor.IsGrowth(normalized, _pendingNormalized))
+        {
+            // Still being typed out - keep waiting, remembering the latest (longest) reading.
+            _pendingRawText = recognized;
+            _pendingNormalized = normalized;
+            return;
+        }
+
+        // What we were waiting on got replaced by something unrelated (a scene cut, a new line
+        // of dialogue) before it stabilized - commit the old one now instead of losing it, and
+        // start tracking the new reading from scratch.
+        var previousPending = _pendingRawText!;
+        _pendingRawText = recognized;
+        _pendingNormalized = normalized;
+        await CommitAsync(previousPending, ct);
+    }
+
+    private long ElapsedSinceShownMs() => Environment.TickCount64 - _lastShownAtTicks;
+
+    private async Task CommitAsync(string raw, CancellationToken ct)
+    {
+        var normalized = SubtitleTextProcessor.NormalizeForComparison(raw);
+        if (SubtitleTextProcessor.Similarity(normalized, _lastCommittedNormalized) >= StableSimilarity) return;
+        _lastCommittedNormalized = normalized;
+
+        var translated = await TranslateRecognizedTextAsync(raw, ct);
+        if (!string.IsNullOrWhiteSpace(translated))
+        {
+            _lastShownAtTicks = Environment.TickCount64;
+            TextUpdated?.Invoke(translated);
+        }
     }
 
     /// <summary>

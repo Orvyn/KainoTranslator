@@ -1,5 +1,7 @@
 # KainoTranslator
 
+**English** | [Русский](README.ru.md) | [日本語](README.ja.md) | [Deutsch](README.de.md) | [Polski](README.pl.md)
+
 A lightweight Windows desktop app that OCRs a chosen rectangle of your screen and shows a
 live-translated overlay on top of it — built for game subtitles, dialogue boxes, video
 captions, or any on-screen foreign text.
@@ -16,6 +18,10 @@ captions, or any on-screen foreign text.
   getting IP-rate-limited under heavy use.
 - Click-through, borderless-friendly overlay designed to sit on top of games without stealing
   focus or input.
+
+> **Note:** the app's interface itself is currently Russian-only. Tab/menu names below are
+> given as they literally appear in the app (Russian), with an English translation in
+> parentheses the first time each one is mentioned.
 
 ## Requirements
 
@@ -48,7 +54,7 @@ There's no window on launch by design; if you don't see the tray icon, check the
 | Translate an area once (one-off)     | `Ctrl+Shift+D`  |
 | Open settings                        | `Ctrl+Shift+O`  |
 
-All four are changeable in **Settings > Hotkeys** — click the box and press your desired
+All four are changeable in **Settings > Горячие клавиши** (Hotkeys) — click the box and press your desired
 combination (must include at least one modifier key). If a hotkey fails to register (shown as
 a tray balloon notification), another app is already using that combo — pick a different one.
 
@@ -61,9 +67,8 @@ capture area or interrupting live translation if it's already running.
 1. Launch the app (tray icon appears).
 2. Press `Ctrl+Shift+A` and drag a rectangle over the subtitle/dialogue area you want translated.
 3. Press `Ctrl+Shift+O` to open Settings:
-   - **General** — OCR engine (Windows OCR is on by default), source language, translator,
-     target language.
-   - **Translator API Keys** — add a key for whichever translator you picked (see below).
+   - **Перевод** (Translation) — OCR engine (Windows OCR is on by default), source language,
+     translator, target language, and an API key for whichever translator you picked (see below).
    - Save.
 4. Press `Ctrl+Shift+S` to start live translation. The translated text appears in an overlay
    near the capture area.
@@ -76,9 +81,9 @@ capture area or interrupting live translation if it's already running.
   its language options. Fast and generally the most accurate on clean UI/subtitle text.
 - **Tesseract (legacy)** — fully offline. Download `.traineddata` files for the languages you
   need from https://github.com/tesseract-ocr/tessdata_fast and place them in the folder set in
-  **Settings > Advanced > Tesseract data folder** (defaults to `.\tessdata` next to the exe).
+  **Settings > Прочее** (Other) **> Tesseract data folder** (defaults to `.\tessdata` next to the exe).
 - **EasyOCR (legacy)** — needs Python 3.9+ on PATH (or point at its exe in
-  **Settings > Advanced**) with `pip install easyocr` run once. The app launches
+  **Settings > Прочее** (Other)) with `pip install easyocr` run once. The app launches
   `Python\easyocr_worker.py`, which keeps EasyOCR's model loaded in memory and answers one
   recognition request per line of stdin — this avoids reloading the (slow) model on every
   frame. GPU acceleration is optional and requires a CUDA build of PyTorch.
@@ -94,7 +99,7 @@ capture area or interrupting live translation if it's already running.
 
 ## Proxies
 
-**Settings > Advanced > Proxy list** (at the bottom of the tab) accepts one proxy per line:
+**Settings > Прочее** (Other) **> Proxy list** (at the bottom of the tab) accepts one proxy per line:
 ```
 http://1.2.3.4:8080
 http://user:pass@1.2.3.4:8080
@@ -115,7 +120,7 @@ isn't empty) spreads the load across different IPs.
   modes render through DWM like any other window, so capture and overlay both work correctly.
   Recent Windows/DirectX versions increasingly avoid true exclusive fullscreen anyway, but if a
   specific game only offers "Fullscreen", try windowed/borderless if the overlay looks wrong.
-- The overlay is **click-through by default** (toggle in **Settings > Overlay**), so it never
+- The overlay is **click-through by default** (toggle in **Settings > Оформление** (Appearance)), so it never
   blocks mouse clicks or keyboard input meant for the game underneath.
 - The app is **per-monitor DPI aware**, so capture area and overlay placement stay accurate
   even on mixed-DPI multi-monitor setups or if you drag the game between monitors after picking
@@ -123,7 +128,7 @@ isn't empty) spreads the load across different IPs.
 
 ## Overlay appearance
 
-**Settings > Оформление** lets you set:
+**Settings > Оформление** (Appearance) lets you set:
 - Position (default: top-center of the screen), font size, and max width (default 1200px).
 - Text color and background color (hex, e.g. `#FFFFFF`), with a live preview swatch, plus
   background opacity (default 80%).
@@ -133,7 +138,7 @@ isn't empty) spreads the load across different IPs.
 
 ## Performance notes
 
-- The polling interval (default 0.3s, **Settings > Перевод**, shown in seconds) controls how
+- The polling interval (default 0.3s, **Settings > Перевод** (Translation), shown in seconds) controls how
   often the capture area is re-checked.
 - "Skip OCR/translation when the capture area hasn't visibly changed" (on by default) hashes a
   small downsampled version of each captured frame and skips OCR + the translator API call

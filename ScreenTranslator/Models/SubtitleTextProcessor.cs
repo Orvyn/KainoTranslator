@@ -81,4 +81,54 @@ public static class SubtitleTextProcessor
         var collapsed = Regex.Replace(text, @"\s+", " ").Trim();
         return collapsed.ToLowerInvariant();
     }
+
+    /// <summary>
+    /// 0 (completely different) to 1 (identical) similarity between two already-normalized
+    /// strings, tolerant of minor OCR noise (a misread character, a dropped space, etc.) -
+    /// used instead of strict equality so two near-identical OCR reads of the same on-screen
+    /// text are treated as "the same" even if OCR didn't read them byte-for-byte identically.
+    /// </summary>
+    public static double Similarity(string a, string b)
+    {
+        if (a.Length == 0 && b.Length == 0) return 1;
+        if (a.Length == 0 || b.Length == 0) return 0;
+        if (a == b) return 1;
+
+        var distance = LevenshteinDistance(a, b);
+        var maxLen = Math.Max(a.Length, b.Length);
+        return 1.0 - (double)distance / maxLen;
+    }
+
+    /// <summary>
+    /// True if one string looks like an in-progress extension of the other - the signature of a
+    /// "typewriter" subtitle effect where each poll captures a bit more text than the last.
+    /// </summary>
+    public static bool IsGrowth(string a, string b)
+    {
+        if (a.Length == 0 || b.Length == 0) return false;
+        var shorter = a.Length <= b.Length ? a : b;
+        var longer = a.Length <= b.Length ? b : a;
+        if (longer.StartsWith(shorter, StringComparison.Ordinal)) return true;
+
+        // Tolerate a bit of OCR noise in the already-typed prefix too.
+        var prefixOfLonger = longer[..Math.Min(shorter.Length, longer.Length)];
+        return Similarity(prefixOfLonger, shorter) >= 0.85;
+    }
+
+    private static int LevenshteinDistance(string a, string b)
+    {
+        var dp = new int[a.Length + 1, b.Length + 1];
+        for (var i = 0; i <= a.Length; i++) dp[i, 0] = i;
+        for (var j = 0; j <= b.Length; j++) dp[0, j] = j;
+
+        for (var i = 1; i <= a.Length; i++)
+        {
+            for (var j = 1; j <= b.Length; j++)
+            {
+                var cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                dp[i, j] = Math.Min(Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1), dp[i - 1, j - 1] + cost);
+            }
+        }
+        return dp[a.Length, b.Length];
+    }
 }
