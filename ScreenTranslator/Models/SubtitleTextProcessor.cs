@@ -115,6 +115,19 @@ public static class SubtitleTextProcessor
         return Similarity(prefixOfLonger, shorter) >= 0.85;
     }
 
+    /// <summary>
+    /// A cheap sanity check used before translating a never-confirmed OCR reading (i.e. one that
+    /// only appeared once, right before the text vanished from screen) - filters out the kind of
+    /// one-or-two-symbol noise a fade-in/out transition frame can produce, without being so
+    /// strict that it rejects genuinely short real subtitles.
+    /// </summary>
+    public static bool LooksPlausible(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var letterOrDigitCount = text.Count(char.IsLetterOrDigit);
+        return letterOrDigitCount >= 2;
+    }
+
     private static int LevenshteinDistance(string a, string b)
     {
         var dp = new int[a.Length + 1, b.Length + 1];

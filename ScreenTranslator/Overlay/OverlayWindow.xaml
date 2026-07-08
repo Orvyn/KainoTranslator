@@ -9,6 +9,7 @@
         Topmost="True"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
+        ShowActivated="False"
         SizeToContent="WidthAndHeight">
     <Border x:Name="Backdrop"
             CornerRadius="10"

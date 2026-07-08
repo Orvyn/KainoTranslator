@@ -37,9 +37,11 @@ public sealed class TranslationEngine : IDisposable
     //    it to *stop* growing before translating, so the translation doesn't flicker through
     //    every partial sentence on the way.
     //  - A cutscene line that appears already complete and may only be on screen for a second
-    //    or two: waiting around for "the same reading twice" can miss it entirely if it's gone
-    //    before a confirming read happens, so a genuinely new/unrelated reading (not a growth of
-    //    what we were already waiting on) is committed immediately instead of discarded.
+    //    or two: if it vanishes before a second, confirming read ever happens, we still
+    //    translate what we saw rather than dropping it - but only that specific "it disappeared"
+    //    case. If a reading is instead simply *replaced* by something else before being
+    //    confirmed, it's discarded rather than translated, since that's usually a one-off OCR
+    //    misread (e.g. a fade transition) - translating it tended to show garbled or stale text.
     private string? _pendingRawText;
     private string? _pendingNormalized;
     private string _lastCommittedNormalized = "";
@@ -147,12 +149,14 @@ public sealed class TranslationEngine : IDisposable
         {
             if (_pendingNormalized != null)
             {
-                // Something was mid-confirmation and just disappeared (a short cutscene flash) -
-                // translate what we had rather than silently dropping it.
+                // Something was mid-confirmation and just disappeared (a short cutscene flash).
+                // Translate what we had rather than silently dropping it - but only if it looks
+                // like real text and not a one-off OCR misread (e.g. from a fade transition).
                 var toCommit = _pendingRawText!;
                 _pendingRawText = null;
                 _pendingNormalized = null;
-                await CommitAsync(toCommit, ct);
+                if (SubtitleTextProcessor.LooksPlausible(toCommit))
+                    await CommitAsync(toCommit, ct);
                 return;
             }
 
@@ -180,7 +184,7 @@ public sealed class TranslationEngine : IDisposable
         var similarityToPending = SubtitleTextProcessor.Similarity(normalized, _pendingNormalized);
         if (similarityToPending >= StableSimilarity)
         {
-            // Stopped changing - safe to translate now.
+            // Stopped changing - confirmed by a second matching read, safe to translate now.
             _pendingRawText = null;
             _pendingNormalized = null;
             await CommitAsync(recognized, ct);
@@ -195,13 +199,12 @@ public sealed class TranslationEngine : IDisposable
             return;
         }
 
-        // What we were waiting on got replaced by something unrelated (a scene cut, a new line
-        // of dialogue) before it stabilized - commit the old one now instead of losing it, and
-        // start tracking the new reading from scratch.
-        var previousPending = _pendingRawText!;
+        // What we were waiting on got replaced by something unrelated before it was ever
+        // confirmed - it was likely a one-off misread (e.g. mid fade-in/out), or the game has
+        // already moved on. Rather than translating that stale, unconfirmed reading (which
+        // showed up as garbled or outdated text), just start tracking the new reading fresh.
         _pendingRawText = recognized;
         _pendingNormalized = normalized;
-        await CommitAsync(previousPending, ct);
     }
 
     private long ElapsedSinceShownMs() => Environment.TickCount64 - _lastShownAtTicks;
