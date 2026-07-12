@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,6 +19,9 @@ namespace ScreenTranslator.Capture;
 /// </summary>
 public partial class RegionSelectorWindow : Window
 {
+    [DllImport("user32.dll")] private static extern bool ClipCursor(IntPtr lpRect);
+    [DllImport("user32.dll")] private static extern int ShowCursor(bool bShow);
+
     public Rectangle? SelectedRegion { get; private set; }
 
     private Point _start;
@@ -47,6 +51,17 @@ public partial class RegionSelectorWindow : Window
             Top = topLeft.Y;
             Width = size.X;
             Height = size.Y;
+
+            // Some games with mouse-look (FPS/3D camera control) confine the cursor to the
+            // window (or its center) via ClipCursor and hide it via ShowCursor - if that's still
+            // in effect when this selector appears, the cursor can look "stuck" in the middle of
+            // the screen. Release both so the cursor is free and visible for the selection.
+            try
+            {
+                ClipCursor(IntPtr.Zero);
+                ShowCursor(true);
+            }
+            catch { /* best effort - never worth failing region selection over */ }
         };
 
         MouseLeftButtonDown += OnMouseLeftButtonDown;

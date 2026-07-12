@@ -16,6 +16,7 @@ namespace ScreenTranslator;
 public partial class App : Application
 {
     private const string AppDisplayName = "KainoTranslator";
+    public const string AppVersion = "1.4";
 
     private AppSettings _settings = null!;
     private TranslationEngine _engine = null!;
@@ -102,6 +103,8 @@ public partial class App : Application
             _settings.Region.HasRegion = true;
             _settings.Save();
             ShowBalloon("Область захвата выбрана", $"{region.Width}×{region.Height} в точке ({region.X},{region.Y}).");
+
+            if (_settings.AutoStartTranslationAfterRegionSelect) wasRunning = true;
         }
 
         if (wasRunning) _engine.Start();
@@ -263,6 +266,7 @@ public partial class App : Application
         menu.Items.Add("Выход", null, (_, _) => Shutdown());
         _trayIcon.ContextMenuStrip = menu;
         _trayIcon.DoubleClick += (_, _) => OpenSettings();
+        _trayIcon.BalloonTipClicked += (_, _) => OpenSettings();
     }
 
     private void ShowAboutDialog()

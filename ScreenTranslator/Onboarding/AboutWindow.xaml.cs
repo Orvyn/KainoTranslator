@@ -8,6 +8,7 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
+        VersionText.Text = $"v{App.AppVersion}";
     }
 
     private void OnRequestNavigate(object sender, RequestNavigateEventArgs e) => SettingsUi.LinkOpener.OpenInBrowser(sender, e);

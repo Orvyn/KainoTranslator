@@ -87,6 +87,7 @@ public partial class SettingsWindow : Window
 
         PollingIntervalBox.Text = (_working.PollingIntervalMs / 1000.0).ToString("0.##");
         SkipUnchangedCheck.IsChecked = _working.SkipOcrWhenFrameUnchanged;
+        AutoStartAfterRegionSelectCheck.IsChecked = _working.AutoStartTranslationAfterRegionSelect;
 
         SelectRegionHotkeyBox.Text = _working.Hotkeys.SelectRegion.Combo;
         ToggleHotkeyBox.Text = _working.Hotkeys.ToggleTranslation.Combo;
@@ -361,6 +362,7 @@ public partial class SettingsWindow : Window
         var seconds = double.Parse(PollingIntervalBox.Text);
         _working.PollingIntervalMs = Math.Clamp((int)Math.Round(seconds * 1000), 100, 5000);
         _working.SkipOcrWhenFrameUnchanged = SkipUnchangedCheck.IsChecked == true;
+        _working.AutoStartTranslationAfterRegionSelect = AutoStartAfterRegionSelectCheck.IsChecked == true;
 
         RequireHotkey(SelectRegionHotkeyBox.Text);
         RequireHotkey(ToggleHotkeyBox.Text);

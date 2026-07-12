@@ -137,7 +137,24 @@ public sealed class TranslationEngine : IDisposable
         if (_settings.SkipOcrWhenFrameUnchanged)
         {
             var hash = ScreenCapture.QuickHash(bitmap);
-            if (hash == _lastFrameHash) return; // nothing changed - skip OCR + translation entirely
+            if (hash == _lastFrameHash)
+            {
+                // The screen hasn't visibly changed since the last poll. If a candidate was
+                // waiting on a confirming re-read, an unchanged image *is* that confirmation -
+                // running OCR again would just read the same text, so commit straight away
+                // instead of silently skipping (which used to leave it stuck unconfirmed
+                // forever whenever the on-screen text had zero background animation to ever
+                // change the frame hash again).
+                if (_pendingNormalized != null)
+                {
+                    var toCommit = _pendingRawText!;
+                    _pendingRawText = null;
+                    _pendingNormalized = null;
+                    if (SubtitleTextProcessor.LooksPlausible(toCommit))
+                        await CommitAsync(toCommit, ct);
+                }
+                return;
+            }
             _lastFrameHash = hash;
         }
 
@@ -168,9 +185,14 @@ public sealed class TranslationEngine : IDisposable
             return;
         }
 
-        // Already showing (near enough) this exact text - nothing to do.
+        // Already showing (near enough) this exact text - nothing to do (and drop any stale
+        // pending candidate left over from before the screen briefly matched old text again).
         if (SubtitleTextProcessor.Similarity(normalized, _lastCommittedNormalized) >= StableSimilarity)
+        {
+            _pendingRawText = null;
+            _pendingNormalized = null;
             return;
+        }
 
         // First time seeing this particular reading since the last commit - hold it for one
         // more poll to see whether it's still being typed out before acting on it.
@@ -200,9 +222,10 @@ public sealed class TranslationEngine : IDisposable
         }
 
         // What we were waiting on got replaced by something unrelated before it was ever
-        // confirmed - it was likely a one-off misread (e.g. mid fade-in/out), or the game has
-        // already moved on. Rather than translating that stale, unconfirmed reading (which
-        // showed up as garbled or outdated text), just start tracking the new reading fresh.
+        // confirmed - likely a one-off misread (e.g. mid fade-in/out), or the game has already
+        // moved on. A single, unconfirmed OCR read is unreliable enough (garbled characters,
+        // missing words) that translating it did more harm than good even as an opt-in - so it's
+        // always discarded here, and we just start tracking the new reading fresh instead.
         _pendingRawText = recognized;
         _pendingNormalized = normalized;
     }

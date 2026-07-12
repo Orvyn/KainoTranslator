@@ -98,6 +98,7 @@ public sealed class AppSettings
 
     public int PollingIntervalMs { get; set; } = 300;
     public bool SkipOcrWhenFrameUnchanged { get; set; } = true; // big perf/latency win for static subtitles
+    public bool AutoStartTranslationAfterRegionSelect { get; set; } = true;
 
     public CaptureRegionSettings Region { get; set; } = new();
     public OverlaySettings Overlay { get; set; } = new();

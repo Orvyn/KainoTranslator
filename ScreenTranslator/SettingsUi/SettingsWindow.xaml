@@ -155,6 +155,15 @@
                             </CheckBox>
                         </StackPanel>
                     </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Поведение" Style="{StaticResource H2}"/>
+                            <CheckBox x:Name="AutoStartAfterRegionSelectCheck">
+                                <TextBlock Text="Включать перевод сразу после выбора области захвата" TextWrapping="Wrap"/>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
                 </ScrollViewer>
             </TabItem>

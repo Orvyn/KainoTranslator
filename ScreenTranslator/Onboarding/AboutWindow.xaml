@@ -9,6 +9,7 @@
         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="🌐" FontSize="26" Margin="0,0,10,0" VerticalAlignment="Center"/>
             <TextBlock Text="KainoTranslator" Style="{StaticResource H1}" VerticalAlignment="Center"/>
+            <TextBlock x:Name="VersionText" Style="{StaticResource Hint}" Margin="8,0,0,0" VerticalAlignment="Bottom"/>
         </StackPanel>
         <TextBlock Text="Перевод текста с экрана в реальном времени — для игр, субтитров и других приложений."
                    Style="{StaticResource Hint}" Margin="0,0,0,16" FontSize="13"/>
