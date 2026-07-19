@@ -9,6 +9,7 @@ using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Point = System.Windows.Point;
+using ScreenTranslator.Localization;
 
 namespace ScreenTranslator.Capture;
 
@@ -33,6 +34,7 @@ public partial class RegionSelectorWindow : Window
     public RegionSelectorWindow()
     {
         InitializeComponent();
+        HintText.Text = Loc.S("Region.Hint");
 
         // Position/size the window in WPF (DIP) units. Because different monitors can have
         // different DPI, we can't just divide by a single scale factor - so instead we place

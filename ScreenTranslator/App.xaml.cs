@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using Application = System.Windows.Application;
 using ScreenTranslator.Capture;
 using ScreenTranslator.Hotkeys;
+using ScreenTranslator.Localization;
 using ScreenTranslator.Models;
 using ScreenTranslator.Onboarding;
 using ScreenTranslator.Overlay;
@@ -32,6 +33,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         _settings = AppSettings.Load();
+        Loc.Current = _settings.UiLanguage == "en" ? AppLanguage.English : AppLanguage.Russian;
 
         _overlay = new OverlayWindow();
         _overlay.ApplyStyle(_settings.Overlay);
@@ -46,7 +48,7 @@ public partial class App : Application
         RegisterHotkeys();
 
         SetupTrayIcon();
-        ShowBalloon(AppDisplayName, "Программа запущена и работает в трее.");
+        ShowBalloon(AppDisplayName, Loc.S("Balloon.Started"));
 
         if (_settings.ShowWelcomeOnStartup)
             ShowWelcomeWindow();
@@ -72,16 +74,16 @@ public partial class App : Application
         _hotkeys.UnregisterAll();
 
         if (!_hotkeys.Register(_settings.Hotkeys.SelectRegion.Combo, OnSelectRegionHotkey))
-            ShowBalloon("Конфликт горячих клавиш", $"Не удалось назначить «{_settings.Hotkeys.SelectRegion.Combo}» для выбора области — возможно, она уже занята другой программой.");
+            ShowBalloon(Loc.S("Balloon.HotkeyConflictTitle"), string.Format(Loc.S("Balloon.HotkeyConflict.SelectRegion"), _settings.Hotkeys.SelectRegion.Combo));
 
         if (!_hotkeys.Register(_settings.Hotkeys.ToggleTranslation.Combo, OnToggleHotkey))
-            ShowBalloon("Конфликт горячих клавиш", $"Не удалось назначить «{_settings.Hotkeys.ToggleTranslation.Combo}» для включения/выключения перевода — возможно, она уже занята другой программой.");
+            ShowBalloon(Loc.S("Balloon.HotkeyConflictTitle"), string.Format(Loc.S("Balloon.HotkeyConflict.Toggle"), _settings.Hotkeys.ToggleTranslation.Combo));
 
         if (!_hotkeys.Register(_settings.Hotkeys.OpenSettings.Combo, OnOpenSettingsHotkey))
-            ShowBalloon("Конфликт горячих клавиш", $"Не удалось назначить «{_settings.Hotkeys.OpenSettings.Combo}» для открытия настроек — возможно, она уже занята другой программой.");
+            ShowBalloon(Loc.S("Balloon.HotkeyConflictTitle"), string.Format(Loc.S("Balloon.HotkeyConflict.Settings"), _settings.Hotkeys.OpenSettings.Combo));
 
         if (!_hotkeys.Register(_settings.Hotkeys.OneTimeTranslate.Combo, OnOneTimeTranslateHotkey))
-            ShowBalloon("Конфликт горячих клавиш", $"Не удалось назначить «{_settings.Hotkeys.OneTimeTranslate.Combo}» для разового перевода — возможно, она уже занята другой программой.");
+            ShowBalloon(Loc.S("Balloon.HotkeyConflictTitle"), string.Format(Loc.S("Balloon.HotkeyConflict.OneTime"), _settings.Hotkeys.OneTimeTranslate.Combo));
     }
 
     private void OnSelectRegionHotkey() => Dispatcher.Invoke(SelectRegion);
@@ -102,7 +104,7 @@ public partial class App : Application
             _settings.Region.Height = region.Height;
             _settings.Region.HasRegion = true;
             _settings.Save();
-            ShowBalloon("Область захвата выбрана", $"{region.Width}×{region.Height} в точке ({region.X},{region.Y}).");
+            ShowBalloon(Loc.S("Balloon.RegionSetTitle"), string.Format(Loc.S("Balloon.RegionSetText"), region.Width, region.Height, region.X, region.Y));
 
             if (_settings.AutoStartTranslationAfterRegionSelect) wasRunning = true;
         }
@@ -118,7 +120,7 @@ public partial class App : Application
         if (!_engine.IsRunning && !_settings.Region.HasRegion)
         {
             System.Windows.MessageBox.Show(
-                "Сначала выберите область экрана для перевода (горячая клавиша «Выбрать область экрана»), а затем включите перевод.",
+                Loc.S("Warning.NoRegionText"),
                 AppDisplayName, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -151,7 +153,7 @@ public partial class App : Application
 
             if (string.IsNullOrWhiteSpace(translated))
             {
-                ShowBalloon(AppDisplayName, "Не удалось распознать текст в выбранной области.");
+                ShowBalloon(AppDisplayName, Loc.S("Balloon.OneTimeNoText"));
                 return;
             }
 
@@ -162,7 +164,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            ShowBalloon(AppDisplayName, "Ошибка разового перевода: " + ex.Message);
+            ShowBalloon(AppDisplayName, string.Format(Loc.S("Balloon.OneTimeError"), ex.Message));
         }
     }
 
@@ -180,11 +182,12 @@ public partial class App : Application
         _settingsWindow.SettingsSaved += async updated =>
         {
             _settings = updated;
+            Loc.Current = _settings.UiLanguage == "en" ? AppLanguage.English : AppLanguage.Russian;
             _overlay.ApplyStyle(_settings.Overlay);
             RegisterHotkeys();
             await _engine.ApplySettingsAsync(_settings);
         };
-        _settingsWindow.Closed += (_, _) => ShowBalloon(AppDisplayName, "Программа осталась запущена в трее.");
+        _settingsWindow.Closed += (_, _) => ShowBalloon(AppDisplayName, Loc.S("Balloon.StillRunning"));
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
@@ -255,15 +258,15 @@ public partial class App : Application
         };
 
         var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("Выбрать область экрана", null, (_, _) => SelectRegion());
-        menu.Items.Add("Включить / выключить перевод", null, (_, _) => ToggleTranslation());
-        menu.Items.Add("Перевести область один раз", null, (_, _) => OneTimeTranslate());
-        menu.Items.Add("Настройки...", null, (_, _) => OpenSettings());
+        menu.Items.Add(Loc.S("Tray.SelectRegion"), null, (_, _) => SelectRegion());
+        menu.Items.Add(Loc.S("Tray.ToggleTranslation"), null, (_, _) => ToggleTranslation());
+        menu.Items.Add(Loc.S("Tray.TranslateOnce"), null, (_, _) => OneTimeTranslate());
+        menu.Items.Add(Loc.S("Tray.Settings"), null, (_, _) => OpenSettings());
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-        menu.Items.Add("Справка / с чего начать", null, (_, _) => ShowWelcomeWindow());
-        menu.Items.Add("О программе", null, (_, _) => ShowAboutDialog());
+        menu.Items.Add(Loc.S("Tray.Help"), null, (_, _) => ShowWelcomeWindow());
+        menu.Items.Add(Loc.S("Tray.About"), null, (_, _) => ShowAboutDialog());
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-        menu.Items.Add("Выход", null, (_, _) => Shutdown());
+        menu.Items.Add(Loc.S("Tray.Exit"), null, (_, _) => Shutdown());
         _trayIcon.ContextMenuStrip = menu;
         _trayIcon.DoubleClick += (_, _) => OpenSettings();
         _trayIcon.BalloonTipClicked += (_, _) => OpenSettings();

@@ -1,7 +1,7 @@
 <Window x:Class="ScreenTranslator.Capture.RegionSelectorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="KainoTranslator - выбор области"
+        Title="KainoTranslator"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="#01000000"
@@ -18,7 +18,6 @@
                        Visibility="Collapsed"/>
             <TextBlock x:Name="HintText"
                        Foreground="White" FontSize="18" FontFamily="Segoe UI"
-                       Text="Выделите область с текстом для перевода  •  Esc — отмена"
                        Canvas.Left="20" Canvas.Top="20"
                        Background="#AA000000" Padding="10,6"/>
         </Canvas>

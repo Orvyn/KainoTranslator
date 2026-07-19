@@ -115,6 +115,7 @@ public sealed class AppSettings
 
     public bool RunAtWindowsStartup { get; set; } = false;
     public bool ShowWelcomeOnStartup { get; set; } = true;
+    public string UiLanguage { get; set; } = "ru"; // "ru" or "en"
 
     [JsonIgnore]
     public static string SettingsPath => Path.Combine(

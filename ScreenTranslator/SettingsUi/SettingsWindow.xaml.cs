@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using ScreenTranslator.Localization;
 using ScreenTranslator.Models;
 using ScreenTranslator.Ocr;
 using ScreenTranslator.Translation;
@@ -41,9 +42,11 @@ public partial class SettingsWindow : Window
         // Work on a clone so cancelling (closing without Save) doesn't mutate live settings.
         _working = current.Clone();
 
+        ApplyLocalization();
+
         OcrEngineCombo.ItemsSource = new[]
         {
-            new EnumOption<OcrEngineKind>(OcrEngineKind.WindowsOcr, "Windows OCR (рекомендуется)"),
+            new EnumOption<OcrEngineKind>(OcrEngineKind.WindowsOcr, "Windows OCR (" + (Loc.Current == AppLanguage.English ? "recommended" : "рекомендуется") + ")"),
             new EnumOption<OcrEngineKind>(OcrEngineKind.Tesseract, "Tesseract (legacy)"),
             new EnumOption<OcrEngineKind>(OcrEngineKind.EasyOcr, "EasyOCR (legacy)"),
         };
@@ -58,10 +61,16 @@ public partial class SettingsWindow : Window
 
         OverlayPositionCombo.ItemsSource = new[]
         {
-            new EnumOption<OverlayPosition>(OverlayPosition.FixedTopCenterOfScreen, "Вверху экрана по центру"),
-            new EnumOption<OverlayPosition>(OverlayPosition.BelowCaptureArea, "Под областью захвата"),
-            new EnumOption<OverlayPosition>(OverlayPosition.AboveCaptureArea, "Над областью захвата"),
-            new EnumOption<OverlayPosition>(OverlayPosition.FixedBottomCenterOfScreen, "Внизу экрана по центру"),
+            new EnumOption<OverlayPosition>(OverlayPosition.FixedTopCenterOfScreen, Loc.Current == AppLanguage.English ? "Top-center of screen" : "Вверху экрана по центру"),
+            new EnumOption<OverlayPosition>(OverlayPosition.BelowCaptureArea, Loc.Current == AppLanguage.English ? "Below capture area" : "Под областью захвата"),
+            new EnumOption<OverlayPosition>(OverlayPosition.AboveCaptureArea, Loc.Current == AppLanguage.English ? "Above capture area" : "Над областью захвата"),
+            new EnumOption<OverlayPosition>(OverlayPosition.FixedBottomCenterOfScreen, Loc.Current == AppLanguage.English ? "Bottom-center of screen" : "Внизу экрана по центру"),
+        };
+
+        UiLanguageCombo.ItemsSource = new[]
+        {
+            new EnumOption<string>("ru", "Русский"),
+            new EnumOption<string>("en", "English"),
         };
 
         _isLoading = true;
@@ -69,6 +78,109 @@ public partial class SettingsWindow : Window
         _isLoading = false;
 
         UpdateToggleButton();
+    }
+
+    private void ApplyLocalization()
+    {
+        Title = "KainoTranslator";
+        SubtitleText.Text = Loc.S("Settings.Subtitle");
+        SelectRegionButton.ToolTip = Loc.S("Settings.SelectRegionTooltip");
+        CloseButton.Content = Loc.S("Settings.Close");
+        SaveButton.Content = Loc.S("Settings.Save");
+
+        TranslationTab.Header = Loc.S("Settings.Tab.Translation");
+        HotkeysTab.Header = Loc.S("Settings.Tab.Hotkeys");
+        AppearanceTab.Header = Loc.S("Settings.Tab.Appearance");
+        OtherTab.Header = Loc.S("Settings.Tab.Other");
+
+        OcrEngineHeaderText.Text = Loc.S("Settings.OcrEngineHeader");
+        WindowsOcrLink.Inlines.Clear();
+        WindowsOcrLink.Inlines.Add(Loc.S("Settings.WindowsOcrLink"));
+        SourceLanguageHeaderText.Text = Loc.S("Settings.SourceLanguageHeader");
+        TargetLanguageHeaderText.Text = Loc.S("Settings.TargetLanguageHeader");
+        TranslatorHeaderText.Text = Loc.S("Settings.TranslatorHeader");
+
+        DeepLHeaderText.Text = Loc.S("Settings.DeepLHeader");
+        DeepLGetKeyRun.Text = Loc.S("Settings.DeepLGetKey");
+        DeepLApiKeyLabel.Text = Loc.S("Settings.ApiKeyLabel");
+        DeepLProText.Text = Loc.S("Settings.DeepLProCheck");
+
+        GoogleHeaderText.Text = Loc.S("Settings.GoogleHeader");
+        GoogleHintText.Text = Loc.S("Settings.GoogleHint");
+        GoogleGetKeyLink.Inlines.Clear();
+        GoogleGetKeyLink.Inlines.Add(Loc.S("Settings.GoogleGetKey"));
+        GoogleApiKeyLabel.Text = Loc.S("Settings.ApiKeyOptionalLabel");
+
+        YandexHeaderText.Text = Loc.S("Settings.YandexHeader");
+        YandexGetKeyRun.Text = Loc.S("Settings.YandexGetKey");
+        YandexApiKeyLabel.Text = Loc.S("Settings.ApiKeyLabel");
+        YandexFolderIdLabel.Text = Loc.S("Settings.FolderIdLabel");
+
+        PapagoHeaderText.Text = Loc.S("Settings.PapagoHeader");
+        PapagoGetKeyRun.Text = Loc.S("Settings.PapagoGetKey");
+        PapagoClientIdLabel.Text = Loc.S("Settings.ClientIdLabel");
+        PapagoClientSecretLabel.Text = Loc.S("Settings.ClientSecretLabel");
+        PapagoHintText.Text = Loc.S("Settings.PapagoHint");
+
+        PollingHeaderText.Text = Loc.S("Settings.PollingHeader");
+        PollingPrefixText.Text = Loc.S("Settings.PollingPrefix");
+        SecondsText1.Text = Loc.S("Settings.Seconds");
+        SecondsText2.Text = Loc.S("Settings.Seconds");
+        SkipUnchangedText.Text = Loc.S("Settings.SkipUnchangedCheck");
+
+        BehaviorHeaderText.Text = Loc.S("Settings.BehaviorHeader");
+        AutoStartText.Text = Loc.S("Settings.AutoStartCheck");
+
+        HotkeysHeaderText.Text = Loc.S("Settings.HotkeysHeader");
+        HotkeysHintText.Text = Loc.S("Settings.HotkeysHint");
+        HotkeySelectRegionLabel.Text = Loc.S("Settings.HotkeySelectRegion");
+        HotkeyToggleLabel.Text = Loc.S("Settings.HotkeyToggle");
+        HotkeyOnceLabel.Text = Loc.S("Settings.HotkeyOnce");
+        HotkeyOpenSettingsLabel.Text = Loc.S("Settings.HotkeyOpenSettings");
+
+        PositionSizeHeaderText.Text = Loc.S("Settings.PositionSizeHeader");
+        PositionLabel.Text = Loc.S("Settings.PositionLabel");
+        FontSizeLabel.Text = Loc.S("Settings.FontSizeLabel");
+        MaxWidthLabel.Text = Loc.S("Settings.MaxWidthLabel");
+
+        ColorHeaderText.Text = Loc.S("Settings.ColorHeader");
+        TextColorLabel.Text = Loc.S("Settings.TextColorLabel");
+        BgColorLabel.Text = Loc.S("Settings.BgColorLabel");
+        TextColorPreview.ToolTip = Loc.S("Settings.PickColorTooltip");
+        BgColorPreview.ToolTip = Loc.S("Settings.PickColorTooltip");
+        BgOpacityLabelRun.Text = Loc.S("Settings.BgOpacityLabel");
+        BgOpacityHintText.Text = Loc.S("Settings.BgOpacityHint");
+
+        ReadabilityHeaderText.Text = Loc.S("Settings.ReadabilityHeader");
+        ReadabilityHintText.Text = Loc.S("Settings.ReadabilityHint");
+        OutlineNoneRadio.Content = Loc.S("Settings.OutlineNone");
+        OutlineOutlineRadio.Content = Loc.S("Settings.OutlineOutline");
+        OutlineShadowRadio.Content = Loc.S("Settings.OutlineShadow");
+
+        WindowBehaviorHeaderText.Text = Loc.S("Settings.WindowBehaviorHeader");
+        ClickThroughText.Text = Loc.S("Settings.ClickThroughCheck");
+        AutoHideText.Text = Loc.S("Settings.AutoHideCheck");
+        AutoHidePrefixText.Text = Loc.S("Settings.AutoHidePrefix");
+
+        LanguageHeaderText.Text = Loc.S("Settings.LanguageHeader");
+        LanguageHintText.Text = Loc.S("Settings.LanguageHint");
+
+        TesseractHeaderText.Text = Loc.S("Settings.TesseractHeader");
+        TesseractGetFilesRun.Text = Loc.S("Settings.TesseractGetFiles");
+        TesseractFolderLabel.Text = Loc.S("Settings.TesseractFolderLabel");
+
+        EasyOcrHeaderText.Text = Loc.S("Settings.EasyOcrHeader");
+        EasyOcrNeedPythonRun.Text = Loc.S("Settings.EasyOcrNeedPython");
+        EasyOcrThenRunRun.Text = Loc.S("Settings.EasyOcrThenRun");
+        EasyOcrPathLabel.Text = Loc.S("Settings.EasyOcrPathLabel");
+        EasyOcrGpuText.Text = Loc.S("Settings.EasyOcrGpuCheck");
+
+        StartupHeaderText.Text = Loc.S("Settings.StartupHeader");
+        RunAtStartupText.Text = Loc.S("Settings.RunAtStartupCheck");
+
+        ProxyHeaderText.Text = Loc.S("Settings.ProxyHeader");
+        ProxyHintText.Text = Loc.S("Settings.ProxyHint");
+        RotateProxyText.Text = Loc.S("Settings.RotateProxyCheck");
     }
 
     private void LoadFromSettings()
@@ -135,6 +247,9 @@ public partial class SettingsWindow : Window
         EasyOcrGpuCheck.IsChecked = _working.EasyOcrUseGpu;
         RunAtStartupCheck.IsChecked = _working.RunAtWindowsStartup;
 
+        var uiLangOptions = (IEnumerable<EnumOption<string>>)UiLanguageCombo.ItemsSource;
+        UiLanguageCombo.SelectedItem = uiLangOptions.FirstOrDefault(o => o.Value == _working.UiLanguage) ?? uiLangOptions.First();
+
         UpdateOcrHint();
         UpdateTranslatorHint();
     }
@@ -187,9 +302,9 @@ public partial class SettingsWindow : Window
         var kind = (OcrEngineCombo.SelectedItem as EnumOption<OcrEngineKind>)?.Value;
         OcrEngineHint.Text = kind switch
         {
-            OcrEngineKind.WindowsOcr => "Встроен в Windows — быстро и без установки. Но для выбранного языка должен быть установлен компонент распознавания текста (ссылка ниже).",
-            OcrEngineKind.Tesseract => "Работает офлайн. Нужны файлы .traineddata для нужных языков (папка указывается на вкладке «Дополнительно»).",
-            OcrEngineKind.EasyOcr => "Нужен Python и библиотека easyocr (см. вкладку «Дополнительно»). Медленнее из-за загрузки модели.",
+            OcrEngineKind.WindowsOcr => Loc.S("Ocr.WindowsOcr"),
+            OcrEngineKind.Tesseract => Loc.S("Ocr.Tesseract"),
+            OcrEngineKind.EasyOcr => Loc.S("Ocr.EasyOcr"),
             _ => ""
         };
     }
@@ -199,10 +314,10 @@ public partial class SettingsWindow : Window
         var kind = (TranslatorCombo.SelectedItem as EnumOption<TranslatorKind>)?.Value;
         TranslatorHint.Text = kind switch
         {
-            TranslatorKind.DeepL => "Нужен API-ключ (есть бесплатный тариф) — поле ниже.",
-            TranslatorKind.Yandex => "Нужны API-ключ и Folder ID из Yandex Cloud — поля ниже.",
-            TranslatorKind.Papago => "Нужны Client ID и Secret из NAVER Cloud Platform — поля ниже. Ограниченный набор языков.",
-            TranslatorKind.Google => "Работает сразу без ключа (бесплатный способ).",
+            TranslatorKind.DeepL => Loc.S("Translator.DeepL"),
+            TranslatorKind.Yandex => Loc.S("Translator.Yandex"),
+            TranslatorKind.Papago => Loc.S("Translator.Papago"),
+            TranslatorKind.Google => Loc.S("Translator.Google"),
             _ => ""
         };
     }
@@ -224,7 +339,7 @@ public partial class SettingsWindow : Window
     private void UpdateToggleButton()
     {
         ToggleButtonIcon.Text = _isTranslationRunning ? "⏸" : "▶";
-        ToggleButton.ToolTip = _isTranslationRunning ? "Выключить перевод" : "Включить перевод";
+        ToggleButton.ToolTip = _isTranslationRunning ? Loc.S("Settings.ToggleOffTooltip") : Loc.S("Settings.ToggleOnTooltip");
     }
 
     // ---------- Overlay color/opacity previews ----------
@@ -279,13 +394,16 @@ public partial class SettingsWindow : Window
     // ---------- Browse dialogs ----------
     private void OnBrowseTesseractFolderClick(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFolderDialog { Title = "Выберите папку с файлами Tesseract (.traineddata)" };
+        var dlg = new OpenFolderDialog { Title = Loc.S("Settings.TesseractFolderLabel") };
         if (dlg.ShowDialog() == true) TesseractPathBox.Text = dlg.FolderName;
     }
 
     private void OnBrowseEasyOcrPythonClick(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog { Title = "Выберите python.exe", Filter = "Программы (*.exe)|*.exe|Все файлы (*.*)|*.*" };
+        var filter = Loc.Current == AppLanguage.English
+            ? "Programs (*.exe)|*.exe|All files (*.*)|*.*"
+            : "Программы (*.exe)|*.exe|Все файлы (*.*)|*.*";
+        var dlg = new OpenFileDialog { Title = Loc.S("Settings.EasyOcrPathLabel"), Filter = filter };
         if (dlg.ShowDialog() == true) EasyOcrPythonBox.Text = dlg.FileName;
     }
 
@@ -323,7 +441,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = "Некорректное значение: " + ex.Message;
+            StatusText.Text = (Loc.Current == AppLanguage.English ? "Invalid value: " : "Некорректное значение: ") + ex.Message;
             StatusText.Foreground = System.Windows.Media.Brushes.IndianRed;
             return;
         }
@@ -333,7 +451,7 @@ public partial class SettingsWindow : Window
         SettingsSaved?.Invoke(_working);
 
         StatusText.Foreground = System.Windows.Media.Brushes.Gray;
-        StatusText.Text = "Сохранено.";
+        StatusText.Text = Loc.S("Settings.Saved");
         ScheduleStatusTextClear();
     }
 
@@ -392,8 +510,8 @@ public partial class SettingsWindow : Window
         _working.Overlay.MaxWidth = int.Parse(MaxWidthBox.Text);
         _working.Overlay.ClickThrough = ClickThroughCheck.IsChecked == true;
 
-        _working.Overlay.TextColor = ValidateColor(TextColorBox.Text, "Цвет текста");
-        _working.Overlay.BackgroundColorRgb = ValidateColor(BgColorBox.Text, "Цвет фона");
+        _working.Overlay.TextColor = ValidateColor(TextColorBox.Text, Loc.S("Settings.TextColorLabel"));
+        _working.Overlay.BackgroundColorRgb = ValidateColor(BgColorBox.Text, Loc.S("Settings.BgColorLabel"));
         _working.Overlay.BackgroundTransparencyPercent = (int)BgOpacitySlider.Value;
 
         _working.Overlay.OutlineMode = OutlineShadowRadio.IsChecked == true ? TextOutlineMode.Shadow
@@ -407,6 +525,8 @@ public partial class SettingsWindow : Window
         _working.EasyOcrPythonExePath = EasyOcrPythonBox.Text.Trim();
         _working.EasyOcrUseGpu = EasyOcrGpuCheck.IsChecked == true;
         _working.RunAtWindowsStartup = RunAtStartupCheck.IsChecked == true;
+
+        _working.UiLanguage = ((EnumOption<string>)UiLanguageCombo.SelectedItem).Value;
     }
 
     private static string ValidateColor(string hex, string fieldName)
@@ -418,14 +538,22 @@ public partial class SettingsWindow : Window
         }
         catch
         {
-            throw new InvalidOperationException($"«{fieldName}»: «{hex}» не похоже на цвет (используйте формат #RRGGBB).");
+            var message = Loc.Current == AppLanguage.English
+                ? $"\"{fieldName}\": \"{hex}\" doesn't look like a color (use #RRGGBB format)."
+                : $"«{fieldName}»: «{hex}» не похоже на цвет (используйте формат #RRGGBB).";
+            throw new InvalidOperationException(message);
         }
     }
 
     private static void RequireHotkey(string combo)
     {
         if (!Hotkeys.HotkeyManager.TryParse(combo, out _, out _))
-            throw new InvalidOperationException($"«{combo}» — не подходит для горячей клавиши (нужен модификатор + клавиша).");
+        {
+            var message = Loc.Current == AppLanguage.English
+                ? $"\"{combo}\" isn't a valid hotkey (needs a modifier + a key)."
+                : $"«{combo}» — не подходит для горячей клавиши (нужен модификатор + клавиша).";
+            throw new InvalidOperationException(message);
+        }
     }
 
     private static void ApplyRunAtStartup(bool enabled)

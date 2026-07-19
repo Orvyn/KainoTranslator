@@ -44,6 +44,8 @@ public sealed class TranslationEngine : IDisposable
     //    misread (e.g. a fade transition) - translating it tended to show garbled or stale text.
     private string? _pendingRawText;
     private string? _pendingNormalized;
+    private bool _pendingWasGrowing;
+    private bool _pendingUsedGrowthPauseGrace;
     private string _lastCommittedNormalized = "";
     private long _lastShownAtTicks;
 
@@ -85,6 +87,8 @@ public sealed class TranslationEngine : IDisposable
         _lastCommittedNormalized = "";
         _pendingRawText = null;
         _pendingNormalized = null;
+        _pendingWasGrowing = false;
+        _pendingUsedGrowthPauseGrace = false;
         _cts = new CancellationTokenSource();
         _ = RunLoopAsync(_cts.Token);
         RunningStateChanged?.Invoke(true);
@@ -144,12 +148,23 @@ public sealed class TranslationEngine : IDisposable
                 // running OCR again would just read the same text, so commit straight away
                 // instead of silently skipping (which used to leave it stuck unconfirmed
                 // forever whenever the on-screen text had zero background animation to ever
-                // change the frame hash again).
+                // change the frame hash again). Exception: if we actually watched this text
+                // growing (a typewriter reveal in progress), a brief pause might just be a
+                // natural beat in the reveal rather than the end of it - give that specific case
+                // one extra poll before locking it in.
                 if (_pendingNormalized != null)
                 {
+                    if (_pendingWasGrowing && !_pendingUsedGrowthPauseGrace)
+                    {
+                        _pendingUsedGrowthPauseGrace = true;
+                        return;
+                    }
+
                     var toCommit = _pendingRawText!;
                     _pendingRawText = null;
                     _pendingNormalized = null;
+                    _pendingWasGrowing = false;
+                    _pendingUsedGrowthPauseGrace = false;
                     if (SubtitleTextProcessor.LooksPlausible(toCommit))
                         await CommitAsync(toCommit, ct);
                 }
@@ -172,6 +187,8 @@ public sealed class TranslationEngine : IDisposable
                 var toCommit = _pendingRawText!;
                 _pendingRawText = null;
                 _pendingNormalized = null;
+                _pendingWasGrowing = false;
+                _pendingUsedGrowthPauseGrace = false;
                 if (SubtitleTextProcessor.LooksPlausible(toCommit))
                     await CommitAsync(toCommit, ct);
                 return;
@@ -191,6 +208,8 @@ public sealed class TranslationEngine : IDisposable
         {
             _pendingRawText = null;
             _pendingNormalized = null;
+            _pendingWasGrowing = false;
+            _pendingUsedGrowthPauseGrace = false;
             return;
         }
 
@@ -200,15 +219,30 @@ public sealed class TranslationEngine : IDisposable
         {
             _pendingRawText = recognized;
             _pendingNormalized = normalized;
+            _pendingWasGrowing = false;
+            _pendingUsedGrowthPauseGrace = false;
             return;
         }
 
         var similarityToPending = SubtitleTextProcessor.Similarity(normalized, _pendingNormalized);
         if (similarityToPending >= StableSimilarity)
         {
-            // Stopped changing - confirmed by a second matching read, safe to translate now.
+            // Stable twice in a row. If we actually watched this grow (typewriter in progress),
+            // give it one grace poll in case this is just a natural pause mid-reveal rather than
+            // the end of it - otherwise (text appeared already-formed, e.g. a cutscene line)
+            // there's no such evidence of more to come, so translate immediately as before.
+            if (_pendingWasGrowing && !_pendingUsedGrowthPauseGrace)
+            {
+                _pendingUsedGrowthPauseGrace = true;
+                _pendingRawText = recognized;
+                _pendingNormalized = normalized;
+                return;
+            }
+
             _pendingRawText = null;
             _pendingNormalized = null;
+            _pendingWasGrowing = false;
+            _pendingUsedGrowthPauseGrace = false;
             await CommitAsync(recognized, ct);
             return;
         }
@@ -218,6 +252,8 @@ public sealed class TranslationEngine : IDisposable
             // Still being typed out - keep waiting, remembering the latest (longest) reading.
             _pendingRawText = recognized;
             _pendingNormalized = normalized;
+            _pendingWasGrowing = true;
+            _pendingUsedGrowthPauseGrace = false;
             return;
         }
 
@@ -228,6 +264,8 @@ public sealed class TranslationEngine : IDisposable
         // always discarded here, and we just start tracking the new reading fresh instead.
         _pendingRawText = recognized;
         _pendingNormalized = normalized;
+        _pendingWasGrowing = false;
+        _pendingUsedGrowthPauseGrace = false;
     }
 
     private long ElapsedSinceShownMs() => Environment.TickCount64 - _lastShownAtTicks;
