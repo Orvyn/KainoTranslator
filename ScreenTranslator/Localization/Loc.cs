@@ -31,6 +31,7 @@ public static class Loc
         ["Tray.SelectRegion"] = "Выбрать область экрана",
         ["Tray.ToggleTranslation"] = "Включить / выключить перевод",
         ["Tray.TranslateOnce"] = "Перевести область один раз",
+        ["Tray.HoverTranslate"] = "Мгновенный перевод",
         ["Tray.Settings"] = "Настройки...",
         ["Tray.Help"] = "Справка / с чего начать",
         ["Tray.About"] = "О программе",
@@ -44,10 +45,14 @@ public static class Loc
         ["Balloon.HotkeyConflict.Toggle"] = "Не удалось назначить «{0}» для включения/выключения перевода — возможно, она уже занята другой программой.",
         ["Balloon.HotkeyConflict.Settings"] = "Не удалось назначить «{0}» для открытия настроек — возможно, она уже занята другой программой.",
         ["Balloon.HotkeyConflict.OneTime"] = "Не удалось назначить «{0}» для разового перевода — возможно, она уже занята другой программой.",
+        ["Balloon.HotkeyConflict.Retranslate"] = "Не удалось назначить «{0}» для повторного перевода — возможно, она уже занята другой программой.",
+        ["Balloon.HotkeyConflict.HoverCombo"] = "Не удалось назначить «{0}» для мгновенного перевода — возможно, она уже занята другой программой.",
         ["Balloon.RegionSetTitle"] = "Область захвата выбрана",
         ["Balloon.RegionSetText"] = "{0}×{1} в точке ({2},{3}).",
         ["Balloon.OneTimeNoText"] = "Не удалось распознать текст в выбранной области.",
         ["Balloon.OneTimeError"] = "Ошибка разового перевода: {0}",
+        ["Balloon.RetranslateError"] = "Ошибка повторного перевода: {0}",
+        ["Balloon.HoverKeyInvalid"] = "Не удалось включить перевод по наведению: некорректная клавиша в настройках.",
         ["Warning.NoRegionText"] = "Сначала выберите область экрана для перевода (горячая клавиша «Выбрать область экрана»), а затем включите перевод.",
 
         // ===== About window =====
@@ -92,7 +97,27 @@ public static class Loc
         ["Settings.Tab.Translation"] = "🌍 Перевод",
         ["Settings.Tab.Hotkeys"] = "⌨ Горячие клавиши",
         ["Settings.Tab.Appearance"] = "🎨 Оформление",
+        ["Settings.Tab.Glossary"] = "📖 Глоссарий",
         ["Settings.Tab.Other"] = "⚙ Прочее",
+
+        // ===== Tab: Glossary =====
+        ["Settings.GlossaryHeader"] = "Имена и термины",
+        ["Settings.GlossaryHint"] = "Задайте фиксированный перевод для имён персонажей и других повторяющихся терминов, чтобы они переводились всегда одинаково. Оставьте «Перевод» пустым, чтобы термин вообще не переводился (остался как в оригинале).",
+        ["Settings.GlossarySourceColumn"] = "Оригинал",
+        ["Settings.GlossaryTargetColumn"] = "Перевод (необязательно)",
+        ["Settings.GlossaryAddButton"] = "+ Добавить строку",
+        ["Settings.GlossaryProfileDefaultName"] = "Профиль {0}",
+        ["Settings.GlossaryProfileNameHint"] = "Название профиля",
+        ["Settings.GlossaryProfileAddButton"] = "+ Профиль",
+        ["Settings.GlossaryProfileDeleteButton"] = "Удалить профиль",
+        ["Settings.GlossaryProfileDeleteLastError"] = "Нельзя удалить единственный профиль.",
+        ["Settings.GlossaryExportButton"] = "Экспорт...",
+        ["Settings.GlossaryImportButton"] = "Импорт...",
+        ["Settings.GlossaryExportError"] = "Не удалось сохранить файл: {0}",
+        ["Settings.GlossaryImportError"] = "Не удалось прочитать файл: {0}",
+        ["Settings.GlossaryImportEmpty"] = "В файле нет ни одной записи глоссария.",
+        ["Settings.GlossaryImported"] = "Импортировано в новый профиль «{0}».",
+        ["Settings.GlossaryExported"] = "Профиль «{0}» сохранён.",
 
         // ===== Tab: Translation =====
         ["Settings.OcrEngineHeader"] = "Способ распознавания текста (OCR)",
@@ -127,10 +152,14 @@ public static class Loc
 
         // ===== Tab: Hotkeys =====
         ["Settings.HotkeysHeader"] = "Настройка сочетаний клавиш",
-        ["Settings.HotkeysHint"] = "Кликните по полю и нажмите нужное сочетание клавиш (обязательно с Ctrl, Alt, Shift или Win).",
+        ["Settings.HotkeysHint"] = "Кликните по полю и нажмите нужное сочетание клавиш (обязательно с Ctrl, Alt, Shift или Win). Для мгновенного перевода подойдёт и одна клавиша, и кнопка мыши (кроме ЛКМ). Backspace — очистить, тогда хоткей не назначен.",
         ["Settings.HotkeySelectRegion"] = "Выбрать область экрана",
         ["Settings.HotkeyToggle"] = "Включить / выключить перевод",
         ["Settings.HotkeyOnce"] = "Перевести область один раз (не меняя основную область)",
+        ["Settings.HotkeyRetranslate"] = "Перевести заново",
+        ["Settings.HoverTriggerHeader"] = "Мгновенный перевод",
+        ["Settings.HoverModeImmediate"] = "Сразу",
+        ["Settings.HoverModeConfirm"] = "После подтверждения (курсор, затем клик по области)",
         ["Settings.HotkeyOpenSettings"] = "Открыть настройки",
 
         // ===== Tab: Appearance =====
@@ -172,6 +201,7 @@ public static class Loc
         // ===== Region selector =====
         ["Region.Title"] = "KainoTranslator - выбор области",
         ["Region.Hint"] = "Выделите область с текстом для перевода  •  Esc — отмена",
+        ["HoverConfirm.Hint"] = "Кликните по тексту для перевода  •  Esc — отмена",
 
         // ===== OCR/Translator hints (dynamic, built in code) =====
         ["Ocr.WindowsOcr"] = "Встроен в Windows — быстро и без установки. Но для выбранного языка должен быть установлен компонент распознавания текста (ссылка ниже).",
@@ -189,6 +219,7 @@ public static class Loc
         ["Tray.SelectRegion"] = "Select capture area",
         ["Tray.ToggleTranslation"] = "Start / stop translation",
         ["Tray.TranslateOnce"] = "Translate an area once",
+        ["Tray.HoverTranslate"] = "Instant translate",
         ["Tray.Settings"] = "Settings...",
         ["Tray.Help"] = "Help / getting started",
         ["Tray.About"] = "About",
@@ -202,10 +233,14 @@ public static class Loc
         ["Balloon.HotkeyConflict.Toggle"] = "Couldn't register '{0}' for starting/stopping translation - another app may already be using it.",
         ["Balloon.HotkeyConflict.Settings"] = "Couldn't register '{0}' for opening settings - another app may already be using it.",
         ["Balloon.HotkeyConflict.OneTime"] = "Couldn't register '{0}' for one-time translation - another app may already be using it.",
+        ["Balloon.HotkeyConflict.Retranslate"] = "Couldn't register '{0}' for re-translating - another app may already be using it.",
+        ["Balloon.HotkeyConflict.HoverCombo"] = "Couldn't register '{0}' for instant translate - another app may already be using it.",
         ["Balloon.RegionSetTitle"] = "Capture area set",
         ["Balloon.RegionSetText"] = "{0}×{1} at ({2},{3}).",
         ["Balloon.OneTimeNoText"] = "Couldn't recognize any text in the selected area.",
         ["Balloon.OneTimeError"] = "One-time translation error: {0}",
+        ["Balloon.RetranslateError"] = "Re-translation error: {0}",
+        ["Balloon.HoverKeyInvalid"] = "Couldn't enable hover-translate: invalid trigger key in settings.",
         ["Warning.NoRegionText"] = "First select a capture area for translation (the 'Select capture area' hotkey), then turn translation on.",
 
         // ===== About window =====
@@ -250,7 +285,27 @@ public static class Loc
         ["Settings.Tab.Translation"] = "🌍 Translation",
         ["Settings.Tab.Hotkeys"] = "⌨ Hotkeys",
         ["Settings.Tab.Appearance"] = "🎨 Appearance",
+        ["Settings.Tab.Glossary"] = "📖 Glossary",
         ["Settings.Tab.Other"] = "⚙ Other",
+
+        // ===== Tab: Glossary =====
+        ["Settings.GlossaryHeader"] = "Names and terms",
+        ["Settings.GlossaryHint"] = "Set a fixed translation for character names and other recurring terms so they're always translated the same way. Leave \"Translation\" empty to keep the term untranslated (exactly as in the original).",
+        ["Settings.GlossarySourceColumn"] = "Original",
+        ["Settings.GlossaryTargetColumn"] = "Translation (optional)",
+        ["Settings.GlossaryAddButton"] = "+ Add row",
+        ["Settings.GlossaryProfileDefaultName"] = "Profile {0}",
+        ["Settings.GlossaryProfileNameHint"] = "Profile name",
+        ["Settings.GlossaryProfileAddButton"] = "+ Profile",
+        ["Settings.GlossaryProfileDeleteButton"] = "Delete profile",
+        ["Settings.GlossaryProfileDeleteLastError"] = "Can't delete the only profile.",
+        ["Settings.GlossaryExportButton"] = "Export...",
+        ["Settings.GlossaryImportButton"] = "Import...",
+        ["Settings.GlossaryExportError"] = "Couldn't save the file: {0}",
+        ["Settings.GlossaryImportError"] = "Couldn't read the file: {0}",
+        ["Settings.GlossaryImportEmpty"] = "The file has no glossary entries.",
+        ["Settings.GlossaryImported"] = "Imported into a new profile, \"{0}\".",
+        ["Settings.GlossaryExported"] = "Profile \"{0}\" saved.",
 
         // ===== Tab: Translation =====
         ["Settings.OcrEngineHeader"] = "Text recognition method (OCR)",
@@ -285,10 +340,14 @@ public static class Loc
 
         // ===== Tab: Hotkeys =====
         ["Settings.HotkeysHeader"] = "Hotkey configuration",
-        ["Settings.HotkeysHint"] = "Click a field and press the combination you want (must include Ctrl, Alt, Shift, or Win).",
+        ["Settings.HotkeysHint"] = "Click a field and press the combination you want (must include Ctrl, Alt, Shift, or Win). Instant translate also accepts a single key or a mouse button (except left-click). Backspace clears it, leaving that hotkey unset.",
         ["Settings.HotkeySelectRegion"] = "Select capture area",
         ["Settings.HotkeyToggle"] = "Start / stop translation",
         ["Settings.HotkeyOnce"] = "Translate an area once (without changing the main area)",
+        ["Settings.HotkeyRetranslate"] = "Re-translate",
+        ["Settings.HoverTriggerHeader"] = "Instant translate",
+        ["Settings.HoverModeImmediate"] = "Immediately",
+        ["Settings.HoverModeConfirm"] = "After confirming (cursor appears, then click the spot)",
         ["Settings.HotkeyOpenSettings"] = "Open settings",
 
         // ===== Tab: Appearance =====
@@ -330,6 +389,7 @@ public static class Loc
         // ===== Region selector =====
         ["Region.Title"] = "KainoTranslator - select area",
         ["Region.Hint"] = "Drag to select the text area to translate  •  Esc to cancel",
+        ["HoverConfirm.Hint"] = "Click the text to translate  •  Esc to cancel",
 
         // ===== OCR/Translator hints (dynamic, built in code) =====
         ["Ocr.WindowsOcr"] = "Built into Windows - fast, no install needed. The chosen language's text-recognition component must be installed (link below).",

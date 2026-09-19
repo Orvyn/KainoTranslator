@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +20,7 @@ using TextBox = System.Windows.Controls.TextBox;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
@@ -27,6 +31,8 @@ public partial class SettingsWindow : Window
     public event Action<AppSettings>? SettingsSaved;
     public event Action? RequestSelectRegion;
     public event Action? RequestToggleTranslation;
+
+    private readonly ObservableCollection<GlossaryEntryViewModel> _glossaryRows = new();
 
     private readonly AppSettings _working;
     private bool _isTranslationRunning;
@@ -73,6 +79,8 @@ public partial class SettingsWindow : Window
             new EnumOption<string>("en", "English"),
         };
 
+        GlossaryItemsControl.ItemsSource = _glossaryRows;
+
         _isLoading = true;
         LoadFromSettings();
         _isLoading = false;
@@ -91,7 +99,19 @@ public partial class SettingsWindow : Window
         TranslationTab.Header = Loc.S("Settings.Tab.Translation");
         HotkeysTab.Header = Loc.S("Settings.Tab.Hotkeys");
         AppearanceTab.Header = Loc.S("Settings.Tab.Appearance");
+        GlossaryTab.Header = Loc.S("Settings.Tab.Glossary");
         OtherTab.Header = Loc.S("Settings.Tab.Other");
+
+        GlossaryHeaderText.Text = Loc.S("Settings.GlossaryHeader");
+        GlossaryHintText.Text = Loc.S("Settings.GlossaryHint");
+        GlossarySourceColumnLabel.Text = Loc.S("Settings.GlossarySourceColumn");
+        GlossaryTargetColumnLabel.Text = Loc.S("Settings.GlossaryTargetColumn");
+        AddGlossaryEntryButton.Content = Loc.S("Settings.GlossaryAddButton");
+        GlossaryProfileNameBox.ToolTip = Loc.S("Settings.GlossaryProfileNameHint");
+        AddGlossaryProfileButton.Content = Loc.S("Settings.GlossaryProfileAddButton");
+        DeleteGlossaryProfileButton.Content = Loc.S("Settings.GlossaryProfileDeleteButton");
+        ExportGlossaryButton.Content = Loc.S("Settings.GlossaryExportButton");
+        ImportGlossaryButton.Content = Loc.S("Settings.GlossaryImportButton");
 
         OcrEngineHeaderText.Text = Loc.S("Settings.OcrEngineHeader");
         WindowsOcrLink.Inlines.Clear();
@@ -136,7 +156,11 @@ public partial class SettingsWindow : Window
         HotkeySelectRegionLabel.Text = Loc.S("Settings.HotkeySelectRegion");
         HotkeyToggleLabel.Text = Loc.S("Settings.HotkeyToggle");
         HotkeyOnceLabel.Text = Loc.S("Settings.HotkeyOnce");
+        HotkeyRetranslateLabel.Text = Loc.S("Settings.HotkeyRetranslate");
         HotkeyOpenSettingsLabel.Text = Loc.S("Settings.HotkeyOpenSettings");
+        HoverTriggerHeaderText.Text = Loc.S("Settings.HoverTriggerHeader");
+        HoverModeImmediateRadio.Content = Loc.S("Settings.HoverModeImmediate");
+        HoverModeConfirmRadio.Content = Loc.S("Settings.HoverModeConfirm");
 
         PositionSizeHeaderText.Text = Loc.S("Settings.PositionSizeHeader");
         PositionLabel.Text = Loc.S("Settings.PositionLabel");
@@ -204,7 +228,11 @@ public partial class SettingsWindow : Window
         SelectRegionHotkeyBox.Text = _working.Hotkeys.SelectRegion.Combo;
         ToggleHotkeyBox.Text = _working.Hotkeys.ToggleTranslation.Combo;
         OneTimeHotkeyBox.Text = _working.Hotkeys.OneTimeTranslate.Combo;
+        RetranslateHotkeyBox.Text = _working.Hotkeys.Retranslate.Combo;
         OpenSettingsHotkeyBox.Text = _working.Hotkeys.OpenSettings.Combo;
+        HoverTriggerKeyBox.Text = _working.HoverTranslate.TriggerKey;
+        HoverModeConfirmRadio.IsChecked = _working.HoverTranslate.Mode == HoverTranslateMode.ConfirmClick;
+        HoverModeImmediateRadio.IsChecked = !HoverModeConfirmRadio.IsChecked.Value;
 
         DeepLKeyBox.Text = _working.ApiKeys.DeepLApiKey;
         DeepLProCheck.IsChecked = _working.ApiKeys.DeepLUseProEndpoint;
@@ -249,6 +277,8 @@ public partial class SettingsWindow : Window
 
         var uiLangOptions = (IEnumerable<EnumOption<string>>)UiLanguageCombo.ItemsSource;
         UiLanguageCombo.SelectedItem = uiLangOptions.FirstOrDefault(o => o.Value == _working.UiLanguage) ?? uiLangOptions.First();
+
+        LoadGlossaryProfilesUi();
 
         UpdateOcrHint();
         UpdateTranslatorHint();
@@ -391,6 +421,199 @@ public partial class SettingsWindow : Window
         AutoHideSecondsBox.IsEnabled = AutoHideCheck.IsChecked == true;
     }
 
+    // ---------- Glossary ----------
+    private void OnAddGlossaryEntryClick(object sender, RoutedEventArgs e)
+    {
+        _glossaryRows.Add(new GlossaryEntryViewModel());
+    }
+
+    private void OnRemoveGlossaryEntryClick(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is GlossaryEntryViewModel row)
+            _glossaryRows.Remove(row);
+    }
+
+    // ---------- Glossary profiles ----------
+    private string _editingGlossaryProfileId = "";
+    private bool _suppressGlossaryProfileNameEvent;
+    private static readonly JsonSerializerOptions GlossaryFileJsonOptions = new() { WriteIndented = true };
+
+    private void LoadGlossaryProfilesUi()
+    {
+        var active = _working.GlossaryProfiles.FirstOrDefault(p => p.Id == _working.ActiveGlossaryProfileId)
+                     ?? _working.GlossaryProfiles[0];
+        SwitchEditingProfile(active);
+    }
+
+    private void LoadGlossaryRowsFrom(GlossaryProfile profile)
+    {
+        _glossaryRows.Clear();
+        foreach (var entry in profile.Entries)
+            _glossaryRows.Add(new GlossaryEntryViewModel { SourceTerm = entry.SourceTerm, TargetTerm = entry.TargetTerm });
+    }
+
+    /// <summary>Writes the currently-shown rows back into the given profile's Entries. Called
+    /// before switching/adding/deleting/saving so in-progress edits are never silently lost.</summary>
+    private void CommitGlossaryRowsToProfile(string profileId)
+    {
+        var profile = _working.GlossaryProfiles.FirstOrDefault(p => p.Id == profileId);
+        if (profile is null) return;
+
+        profile.Entries = _glossaryRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.SourceTerm))
+            .Select(r => new GlossaryEntry { SourceTerm = r.SourceTerm.Trim(), TargetTerm = r.TargetTerm.Trim() })
+            .ToList();
+    }
+
+    /// <summary>Switches editing to the given profile. Callers that just added/removed a profile
+    /// from _working.GlossaryProfiles call this afterwards to bring the UI in line.</summary>
+    private void SwitchEditingProfile(GlossaryProfile profile)
+    {
+        _editingGlossaryProfileId = profile.Id;
+        LoadGlossaryRowsFrom(profile);
+
+        _suppressGlossaryProfileNameEvent = true;
+        GlossaryProfileNameBox.Text = profile.Name;
+        _suppressGlossaryProfileNameEvent = false;
+    }
+
+    private void OnGlossaryProfileNameChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressGlossaryProfileNameEvent) return;
+        var profile = _working.GlossaryProfiles.FirstOrDefault(p => p.Id == _editingGlossaryProfileId);
+        if (profile is null) return;
+
+        profile.Name = GlossaryProfileNameBox.Text;
+    }
+
+    /// <summary>Shows every profile in a dropdown menu off the "▾" button - picking one commits
+    /// the current rows and switches to it. A plain menu instead of a combo box next to the name
+    /// field on purpose: a combo box showing the same name as the field right beside it just
+    /// looked like a duplicate, not like two different controls doing two different things.</summary>
+    private void OnGlossaryProfileSwitchClick(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu();
+        foreach (var profile in _working.GlossaryProfiles)
+        {
+            var item = new MenuItem { Header = profile.Name, IsChecked = profile.Id == _editingGlossaryProfileId };
+            item.Click += (_, _) =>
+            {
+                if (profile.Id == _editingGlossaryProfileId) return;
+                CommitGlossaryRowsToProfile(_editingGlossaryProfileId);
+                SwitchEditingProfile(profile);
+            };
+            menu.Items.Add(item);
+        }
+        menu.PlacementTarget = (UIElement)sender;
+        menu.IsOpen = true;
+    }
+
+    private string NextDefaultGlossaryProfileName()
+    {
+        var n = _working.GlossaryProfiles.Count + 1;
+        while (_working.GlossaryProfiles.Any(p => p.Name == string.Format(Loc.S("Settings.GlossaryProfileDefaultName"), n)))
+            n++;
+        return string.Format(Loc.S("Settings.GlossaryProfileDefaultName"), n);
+    }
+
+    private void OnAddGlossaryProfileClick(object sender, RoutedEventArgs e)
+    {
+        CommitGlossaryRowsToProfile(_editingGlossaryProfileId);
+
+        var profile = new GlossaryProfile { Name = NextDefaultGlossaryProfileName() };
+        _working.GlossaryProfiles.Add(profile);
+        SwitchEditingProfile(profile);
+    }
+
+    private void OnDeleteGlossaryProfileClick(object sender, RoutedEventArgs e)
+    {
+        if (_working.GlossaryProfiles.Count <= 1)
+        {
+            StatusText.Foreground = System.Windows.Media.Brushes.IndianRed;
+            StatusText.Text = Loc.S("Settings.GlossaryProfileDeleteLastError");
+            ScheduleStatusTextClear();
+            return;
+        }
+
+        var current = _working.GlossaryProfiles.FirstOrDefault(p => p.Id == _editingGlossaryProfileId);
+        if (current is null) return;
+        _working.GlossaryProfiles.Remove(current);
+        SwitchEditingProfile(_working.GlossaryProfiles[0]);
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(name.Select(c => invalid.Contains(c) ? '_' : c).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "glossary" : cleaned;
+    }
+
+    private void OnExportGlossaryClick(object sender, RoutedEventArgs e)
+    {
+        CommitGlossaryRowsToProfile(_editingGlossaryProfileId);
+        var profile = _working.GlossaryProfiles.First(p => p.Id == _editingGlossaryProfileId);
+
+        var dlg = new SaveFileDialog
+        {
+            Title = Loc.S("Settings.GlossaryExportButton"),
+            Filter = "JSON (*.json)|*.json",
+            FileName = SanitizeFileName(profile.Name) + ".json"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            var json = JsonSerializer.Serialize(profile.Entries, GlossaryFileJsonOptions);
+            File.WriteAllText(dlg.FileName, json);
+            StatusText.Foreground = System.Windows.Media.Brushes.Gray;
+            StatusText.Text = string.Format(Loc.S("Settings.GlossaryExported"), profile.Name);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Foreground = System.Windows.Media.Brushes.IndianRed;
+            StatusText.Text = string.Format(Loc.S("Settings.GlossaryExportError"), ex.Message);
+        }
+        ScheduleStatusTextClear();
+    }
+
+    private void OnImportGlossaryClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog { Title = Loc.S("Settings.GlossaryImportButton"), Filter = "JSON (*.json)|*.json" };
+        if (dlg.ShowDialog() != true) return;
+
+        List<GlossaryEntry>? entries;
+        try
+        {
+            var json = File.ReadAllText(dlg.FileName);
+            entries = JsonSerializer.Deserialize<List<GlossaryEntry>>(json, GlossaryFileJsonOptions);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Foreground = System.Windows.Media.Brushes.IndianRed;
+            StatusText.Text = string.Format(Loc.S("Settings.GlossaryImportError"), ex.Message);
+            ScheduleStatusTextClear();
+            return;
+        }
+
+        if (entries is null || entries.Count == 0)
+        {
+            StatusText.Foreground = System.Windows.Media.Brushes.IndianRed;
+            StatusText.Text = Loc.S("Settings.GlossaryImportEmpty");
+            ScheduleStatusTextClear();
+            return;
+        }
+
+        CommitGlossaryRowsToProfile(_editingGlossaryProfileId);
+
+        var profile = new GlossaryProfile { Name = Path.GetFileNameWithoutExtension(dlg.FileName), Entries = entries };
+        _working.GlossaryProfiles.Add(profile);
+        SwitchEditingProfile(profile);
+
+        StatusText.Foreground = System.Windows.Media.Brushes.Gray;
+        StatusText.Text = string.Format(Loc.S("Settings.GlossaryImported"), profile.Name);
+        ScheduleStatusTextClear();
+    }
+
     // ---------- Browse dialogs ----------
     private void OnBrowseTesseractFolderClick(object sender, RoutedEventArgs e)
     {
@@ -411,25 +634,83 @@ public partial class SettingsWindow : Window
     private void LinkOpener_OnRequestNavigate(object sender, RequestNavigateEventArgs e) => LinkOpener.OpenInBrowser(sender, e);
 
     // ---------- Hotkey capture ----------
-    private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    private static bool IsModifierKey(Key key) =>
+        key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+            or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin;
+
+    private static string FormatCombo(ModifierKeys modifiers, Key key)
     {
-        e.Handled = true;
-        var key = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
-            or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
-            return; // wait for a non-modifier key
-
-        var modifiers = Keyboard.Modifiers;
-        if (modifiers == ModifierKeys.None) return; // require at least one modifier for a system-wide hotkey
-
         var sb = new StringBuilder();
         if (modifiers.HasFlag(ModifierKeys.Control)) sb.Append("Ctrl+");
         if (modifiers.HasFlag(ModifierKeys.Alt)) sb.Append("Alt+");
         if (modifiers.HasFlag(ModifierKeys.Shift)) sb.Append("Shift+");
         if (modifiers.HasFlag(ModifierKeys.Windows)) sb.Append("Win+");
         sb.Append(key);
+        return sb.ToString();
+    }
 
-        ((TextBox)sender).Text = sb.ToString();
+    private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        e.Handled = true;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        if (key == Key.Back)
+        {
+            ((TextBox)sender).Text = ""; // no hotkey bound for this action
+            return;
+        }
+        if (IsModifierKey(key)) return; // wait for a non-modifier key
+
+        var modifiers = Keyboard.Modifiers;
+        if (modifiers == ModifierKeys.None) return; // require at least one modifier for a system-wide hotkey
+
+        ((TextBox)sender).Text = FormatCombo(modifiers, key);
+    }
+
+    /// <summary>
+    /// Captures the instant-translate trigger, which can be a single bare key (modifier keys
+    /// included - Shift, Ctrl, Alt, CapsLock are exactly the keys meant to be tapped alone), a
+    /// modifier+key combo, or (see the mouse handler below) a mouse button. Pressing a modifier
+    /// shows it as a bare key right away; adding a non-modifier key while it's still held turns
+    /// it into a combo, so "hold Ctrl, press F" ends up as "Ctrl+F" and "tap Shift" as "LeftShift".
+    /// Backspace clears it (empty means instant translate is off), same gesture as every other
+    /// hotkey box. Tab is deliberately left unhandled so it still moves focus normally instead of
+    /// getting captured as "the trigger" when someone's just tabbing through the form.
+    /// </summary>
+    private void OnHoverTriggerKeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab) return;
+
+        e.Handled = true;
+        if (key == Key.Back) { ((TextBox)sender).Text = ""; return; }
+        if (key is Key.None or Key.DeadCharProcessed) return;
+
+        var isModifier = IsModifierKey(key);
+        if (isModifier && e.IsRepeat) return; // auto-repeat of a held modifier must not overwrite a combo being built
+
+        var modifiers = Keyboard.Modifiers;
+        ((TextBox)sender).Text = !isModifier && modifiers != ModifierKeys.None
+            ? FormatCombo(modifiers, key)
+            : key.ToString();
+    }
+
+    /// <summary>
+    /// Same box as above also accepts a mouse button - Right/Middle/side buttons, everything
+    /// except Left (reserved for normal clicking, including focusing this very box). Stored as
+    /// "Mouse:&lt;button&gt;" so ApplyHoverTranslateSetting can tell it apart from a keyboard key.
+    /// </summary>
+    private void OnHoverTriggerKeyBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            ((TextBox)sender).Focus(); // plain click just focuses the box, like any other textbox
+            return;
+        }
+
+        e.Handled = true; // stop e.g. a right-click from popping the default context menu
+        ((TextBox)sender).Focus();
+        ((TextBox)sender).Text = "Mouse:" + e.ChangedButton;
     }
 
     // ---------- Save / Close ----------
@@ -485,11 +766,16 @@ public partial class SettingsWindow : Window
         RequireHotkey(SelectRegionHotkeyBox.Text);
         RequireHotkey(ToggleHotkeyBox.Text);
         RequireHotkey(OneTimeHotkeyBox.Text);
+        RequireHotkey(RetranslateHotkeyBox.Text);
         RequireHotkey(OpenSettingsHotkeyBox.Text);
+        RequireTrigger(HoverTriggerKeyBox.Text);
         _working.Hotkeys.SelectRegion.Combo = SelectRegionHotkeyBox.Text;
         _working.Hotkeys.ToggleTranslation.Combo = ToggleHotkeyBox.Text;
         _working.Hotkeys.OneTimeTranslate.Combo = OneTimeHotkeyBox.Text;
+        _working.Hotkeys.Retranslate.Combo = RetranslateHotkeyBox.Text;
         _working.Hotkeys.OpenSettings.Combo = OpenSettingsHotkeyBox.Text;
+        _working.HoverTranslate.TriggerKey = HoverTriggerKeyBox.Text;
+        _working.HoverTranslate.Mode = HoverModeConfirmRadio.IsChecked == true ? HoverTranslateMode.ConfirmClick : HoverTranslateMode.Immediate;
 
         _working.ApiKeys.DeepLApiKey = DeepLKeyBox.Text.Trim();
         _working.ApiKeys.DeepLUseProEndpoint = DeepLProCheck.IsChecked == true;
@@ -527,6 +813,9 @@ public partial class SettingsWindow : Window
         _working.RunAtWindowsStartup = RunAtStartupCheck.IsChecked == true;
 
         _working.UiLanguage = ((EnumOption<string>)UiLanguageCombo.SelectedItem).Value;
+
+        CommitGlossaryRowsToProfile(_editingGlossaryProfileId);
+        _working.ActiveGlossaryProfileId = _editingGlossaryProfileId;
     }
 
     private static string ValidateColor(string hex, string fieldName)
@@ -547,6 +836,7 @@ public partial class SettingsWindow : Window
 
     private static void RequireHotkey(string combo)
     {
+        if (string.IsNullOrEmpty(combo)) return; // cleared via Backspace - intentionally unbound
         if (!Hotkeys.HotkeyManager.TryParse(combo, out _, out _))
         {
             var message = Loc.Current == AppLanguage.English
@@ -554,6 +844,32 @@ public partial class SettingsWindow : Window
                 : $"«{combo}» — не подходит для горячей клавиши (нужен модификатор + клавиша).";
             throw new InvalidOperationException(message);
         }
+    }
+
+    /// <summary>Validates the instant-translate trigger: a bare key name, "Mouse:&lt;button&gt;", or a
+    /// modifier+key combo.</summary>
+    private static void RequireTrigger(string trigger)
+    {
+        if (string.IsNullOrEmpty(trigger)) return; // cleared via Backspace - instant translate is off
+
+        if (trigger.StartsWith("Mouse:", StringComparison.Ordinal))
+        {
+            if (Enum.TryParse<Hotkeys.HoverMouseButton>(trigger["Mouse:".Length..], out _)) return;
+        }
+        else if (trigger.Contains('+'))
+        {
+            RequireHotkey(trigger);
+            return;
+        }
+        else if (Enum.TryParse<Key>(trigger, out _))
+        {
+            return;
+        }
+
+        var message = Loc.Current == AppLanguage.English
+            ? $"\"{trigger}\" isn't a recognized key."
+            : $"«{trigger}» — нераспознанная клавиша.";
+        throw new InvalidOperationException(message);
     }
 
     private static void ApplyRunAtStartup(bool enabled)

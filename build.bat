@@ -1,30 +1,55 @@
 @echo off
-chcp 65001 >nul
-echo ============================================================
-echo   KainoTranslator - sborka gotovogo .exe
-echo ============================================================
-echo.
-echo Eto zaimet 1-2 minuty...
-echo.
+setlocal
 
-dotnet publish "%~dp0ScreenTranslator\ScreenTranslator.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "%~dp0publish"
+rem Пересобирает KainoTranslator (Release, win-x64) и открывает папку с готовым exe.
+rem Класть этот файл в корень репозитория - туда же, где лежит ScreenTranslator.sln.
 
-if %ERRORLEVEL% NEQ 0 (
-  echo.
-  echo ============================================================
-  echo   OSHIBKA SBORKI.
-  echo   Ubedites, chto ustanovlen .NET 8 SDK:
-  echo   https://dotnet.microsoft.com/download/dotnet/8.0
-  echo   ^(nuzhen imenno SDK, ne prosto Runtime^)
-  echo ============================================================
-  pause
-  exit /b 1
+cd /d "%~dp0"
+
+if not exist "ScreenTranslator\ScreenTranslator.csproj" (
+    echo [Ошибка] Рядом с build.bat не найден ScreenTranslator\ScreenTranslator.csproj.
+    echo Переложите build.bat в корень репозитория ^(там же, где .sln^).
+    pause
+    exit /b 1
 )
 
+where dotnet >nul 2>nul
+if errorlevel 1 (
+    echo [Ошибка] dotnet не найден в PATH. Нужен .NET 8 SDK:
+    echo https://dotnet.microsoft.com/download/dotnet/8.0
+    pause
+    exit /b 1
+)
+
+echo Собираю KainoTranslator (Release, win-x64)...
 echo.
-echo ============================================================
-echo   Gotovo! Fail KainoTranslator.exe nahoditsya v papke "publish".
-echo   Otkryvayu papku...
-echo ============================================================
-start "" "%~dp0publish"
+
+dotnet build "ScreenTranslator\ScreenTranslator.csproj" -c Release -r win-x64 --self-contained false > build.log 2>&1
+set BUILD_RESULT=%ERRORLEVEL%
+type build.log
+
+if %BUILD_RESULT% NEQ 0 (
+    echo.
+    echo ============================================================
+    echo   Сборка не удалась. Ошибки ^(без предупреждений^):
+    echo ============================================================
+    findstr /C:"error " build.log
+    echo.
+    echo Полный лог сохранён в build.log
+    pause
+    exit /b 1
+)
+
+set "EXE_PATH=%~dp0ScreenTranslator\bin\Release\net8.0-windows10.0.19041.0\win-x64\KainoTranslator.exe"
+
+echo.
+echo Готово: %EXE_PATH%
+echo.
+
+if exist "%EXE_PATH%" (
+    explorer /select,"%EXE_PATH%"
+) else (
+    echo [Внимание] Ожидаемый exe не найден по этому пути - проверьте вывод сборки выше.
+)
+
 pause

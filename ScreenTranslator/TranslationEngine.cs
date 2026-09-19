@@ -285,6 +285,28 @@ public sealed class TranslationEngine : IDisposable
     }
 
     /// <summary>
+    /// Re-captures and re-translates the main capture area right now, deliberately bypassing the
+    /// "already showing this text" dedup in CommitAsync - the whole point is to retry when the
+    /// translator returned something garbled while the same source text is still on screen.
+    /// Updates the same tracking fields the continuous loop uses, so polling resumes normally
+    /// afterwards instead of immediately re-triggering on its own next tick.
+    /// </summary>
+    public async Task RetranslateCurrentAsync(CancellationToken ct)
+    {
+        var region = new Rectangle(_settings.Region.X, _settings.Region.Y, _settings.Region.Width, _settings.Region.Height);
+        using var bitmap = ScreenCapture.CaptureRegion(region);
+        var recognized = await _ocrEngine.RecognizeAsync(bitmap, _settings.SourceLanguageKey, ct);
+        if (string.IsNullOrWhiteSpace(recognized)) return;
+
+        var translated = await TranslateRecognizedTextAsync(recognized, ct);
+        if (string.IsNullOrWhiteSpace(translated)) return;
+
+        _lastCommittedNormalized = SubtitleTextProcessor.NormalizeForComparison(recognized);
+        _lastShownAtTicks = Environment.TickCount64;
+        TextUpdated?.Invoke(translated);
+    }
+
+    /// <summary>
     /// Captures + OCRs + translates a single, one-off region without touching the main capture
     /// area or the continuous loop's state - used by the "translate once" hotkey.
     /// </summary>
@@ -304,11 +326,19 @@ public sealed class TranslationEngine : IDisposable
         var (speaker, body) = SubtitleTextProcessor.SplitSpeakerAndBody(recognized);
         if (string.IsNullOrWhiteSpace(body)) return "";
 
-        var translatedBody = await _translator.TranslateAsync(body, _settings.SourceLanguageKey, _settings.TargetLanguageKey, ct);
+        var speakerEntry = GlossaryProcessor.FindSpeakerEntry(speaker, _settings.ActiveGlossaryEntries);
+
+        var protectedBody = GlossaryProcessor.ProtectTerms(body, _settings.ActiveGlossaryEntries, out var restoreList);
+        var translatedBody = await _translator.TranslateAsync(protectedBody, _settings.SourceLanguageKey, _settings.TargetLanguageKey, ct);
+        translatedBody = GlossaryProcessor.RestoreTerms(translatedBody, restoreList);
 
         string? translatedSpeaker = null;
         if (!string.IsNullOrWhiteSpace(speaker))
-            translatedSpeaker = await _translator.TranslateAsync(speaker!, _settings.SourceLanguageKey, _settings.TargetLanguageKey, ct);
+        {
+            translatedSpeaker = speakerEntry != null && !string.IsNullOrWhiteSpace(speakerEntry.TargetTerm)
+                ? speakerEntry.TargetTerm
+                : await _translator.TranslateAsync(speaker!, _settings.SourceLanguageKey, _settings.TargetLanguageKey, ct);
+        }
 
         return SubtitleTextProcessor.Combine(translatedSpeaker, translatedBody);
     }

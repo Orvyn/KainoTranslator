@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ScreenTranslator.Ocr;
@@ -64,6 +65,37 @@ public sealed class HotkeyBinding
     public HotkeyBinding(string combo) => Combo = combo;
 }
 
+public enum HoverTranslateMode
+{
+    // Translates the area around the cursor immediately when the trigger fires.
+    Immediate,
+    // The trigger shows a visible clickable cursor first (like region selection) and translates
+    // wherever the next click lands - for games that hide/replace the mouse cursor, where there's
+    // otherwise no way to see where a translate would even happen.
+    ConfirmClick
+}
+
+public sealed class HoverTranslateSettings
+{
+    // What enabling instant translate binds when nothing has been chosen yet (e.g. ticking the
+    // tray item on a fresh install): the mouse's back side button, which - unlike Shift/Ctrl/Alt
+    // - rarely doubles as an in-game action.
+    public const string DefaultTrigger = "Mouse:XButton1";
+
+    // Empty means instant translate is off - there's no separate enabled flag; clearing this
+    // (Backspace in Settings, or unchecking the tray item) is what turns it off.
+    // One field covers all three kinds of trigger: a keyboard key stored as its
+    // System.Windows.Input.Key name (e.g. "LeftShift"), a mouse button stored as
+    // "Mouse:<button>" (e.g. "Mouse:Right", "Mouse:XButton1" - see HoverMouseButton), or a
+    // modifier+key combo (e.g. "Ctrl+Shift+F"). Empty by default: Shift/Ctrl/Alt/mouse buttons
+    // all double as in-game actions in many games, so this shouldn't just turn itself on with
+    // a default nobody chose.
+    public string TriggerKey { get; set; } = "";
+    public HoverTranslateMode Mode { get; set; } = HoverTranslateMode.Immediate;
+    public int BoxWidth { get; set; } = 500;
+    public int BoxHeight { get; set; } = 140;
+}
+
 public sealed class HotkeySettings
 {
     public HotkeyBinding SelectRegion { get; set; } = new("Ctrl+Shift+A");
@@ -72,6 +104,16 @@ public sealed class HotkeySettings
     // One-off: pick any area once, translate it once, without touching the main capture area
     // or the continuous translation loop.
     public HotkeyBinding OneTimeTranslate { get; set; } = new("Ctrl+Shift+D");
+    // Re-runs OCR+translation on the current capture area right now, ignoring the "already
+    // showing this text" cache - for when the translator returned something garbled and the
+    // source text is still on screen.
+    public HotkeyBinding Retranslate { get; set; } = new("Ctrl+Shift+R");
+    // Legacy: instant translate briefly had a separate combo field next to its single-key
+    // trigger; both now live in HoverTranslate.TriggerKey. Kept only so settings.json files saved
+    // in that window still load - folded into TriggerKey by MigrateHoverCombo() on Load(), then
+    // nulled so it's no longer written back. Ignore this in new code.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HotkeyBinding? HoverTranslateCombo { get; set; }
 }
 
 public sealed class ApiKeySettings
@@ -103,6 +145,7 @@ public sealed class AppSettings
     public CaptureRegionSettings Region { get; set; } = new();
     public OverlaySettings Overlay { get; set; } = new();
     public HotkeySettings Hotkeys { get; set; } = new();
+    public HoverTranslateSettings HoverTranslate { get; set; } = new();
     public ApiKeySettings ApiKeys { get; set; } = new();
 
     public List<string> ProxyList { get; set; } = new(); // "http://user:pass@host:port" or "host:port"
@@ -117,6 +160,21 @@ public sealed class AppSettings
     public bool ShowWelcomeOnStartup { get; set; } = true;
     public string UiLanguage { get; set; } = "ru"; // "ru" or "en"
 
+    public List<GlossaryProfile> GlossaryProfiles { get; set; } = new();
+    public string ActiveGlossaryProfileId { get; set; } = "";
+    // Legacy pre-profiles field, kept only so settings.json files saved before profiles existed
+    // still load - migrated into a profile by MigrateLegacyGlossary() on Load() and left empty
+    // afterwards. Ignore this in new code; use GlossaryProfiles/ActiveGlossaryProfileId instead.
+    public List<GlossaryEntry> Glossary { get; set; } = new();
+
+    /// <summary>The glossary entries currently in effect for translation - the active profile's,
+    /// or the first profile's if the stored active id doesn't match anything (e.g. that profile
+    /// was deleted elsewhere).</summary>
+    [JsonIgnore]
+    public List<GlossaryEntry> ActiveGlossaryEntries =>
+        (GlossaryProfiles.FirstOrDefault(p => p.Id == ActiveGlossaryProfileId) ?? GlossaryProfiles.FirstOrDefault())
+        ?.Entries ?? new List<GlossaryEntry>();
+
     [JsonIgnore]
     public static string SettingsPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -124,27 +182,73 @@ public sealed class AppSettings
 
     public static AppSettings Load()
     {
+        AppSettings settings;
         try
         {
             if (File.Exists(SettingsPath))
             {
                 var json = File.ReadAllText(SettingsPath);
-                var loaded = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
-                if (loaded != null) return loaded;
+                settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            }
+            else
+            {
+                settings = new AppSettings();
             }
         }
         catch
         {
             // Fall back to defaults if the file is corrupt/from an incompatible version.
+            settings = new AppSettings();
         }
-        return new AppSettings();
+
+        settings.MigrateLegacyGlossary();
+        settings.EnsureGlossaryProfile();
+        settings.MigrateHoverCombo();
+        return settings;
+    }
+
+    /// <summary>One-time upgrade path: settings.json files saved before glossary profiles existed
+    /// have their terms in the flat Glossary list instead. Folds that into a single profile the
+    /// first time such a file loads; harmless no-op on every load after that.</summary>
+    private void MigrateLegacyGlossary()
+    {
+        if (GlossaryProfiles.Count > 0 || Glossary.Count == 0) return;
+
+        var profile = new GlossaryProfile { Name = "Глоссарий", Entries = Glossary };
+        GlossaryProfiles.Add(profile);
+        ActiveGlossaryProfileId = profile.Id;
+        Glossary = new();
+    }
+
+    /// <summary>One-time upgrade path: a combo that used to live in its own field moves into the
+    /// single trigger field - unless a key/mouse trigger is already set, which wins (one trigger
+    /// only now).</summary>
+    private void MigrateHoverCombo()
+    {
+        var legacy = Hotkeys.HoverTranslateCombo?.Combo;
+        if (string.IsNullOrWhiteSpace(HoverTranslate.TriggerKey) && !string.IsNullOrWhiteSpace(legacy))
+            HoverTranslate.TriggerKey = legacy;
+        Hotkeys.HoverTranslateCombo = null;
+    }
+
+    /// <summary>The Settings UI and the translation pipeline both assume at least one profile
+    /// always exists - guards against a freshly-created AppSettings (first run, or a corrupt
+    /// settings.json that fell back to defaults) having none.</summary>
+    private void EnsureGlossaryProfile()
+    {
+        if (GlossaryProfiles.Count == 0)
+            GlossaryProfiles.Add(new GlossaryProfile { Name = "Профиль 1" });
+        if (!GlossaryProfiles.Any(p => p.Id == ActiveGlossaryProfileId))
+            ActiveGlossaryProfileId = GlossaryProfiles[0].Id;
     }
 
     /// <summary>Deep-copies these settings (used by the Settings window so cancelling doesn't mutate live settings).</summary>
     public AppSettings Clone()
     {
         var json = JsonSerializer.Serialize(this, JsonOptions);
-        return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)!;
+        var clone = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)!;
+        clone.EnsureGlossaryProfile(); // defensive - normally already satisfied by the time Load() handed this instance out
+        return clone;
     }
 
     public void Save()
