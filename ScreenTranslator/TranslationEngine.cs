@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ScreenTranslator.Capture;
@@ -316,6 +317,39 @@ public sealed class TranslationEngine : IDisposable
         var recognized = await _ocrEngine.RecognizeAsync(bitmap, _settings.SourceLanguageKey, ct);
         if (string.IsNullOrWhiteSpace(recognized)) return "";
         return await TranslateRecognizedTextAsync(recognized, ct);
+    }
+
+    /// <summary>True when the current OCR engine reports where each line is, i.e.
+    /// <see cref="TranslateBlockAtAsync"/> can find the text block itself.</summary>
+    public bool SupportsBlockDetection => _ocrEngine.ProvidesLineBounds;
+
+    /// <summary>
+    /// Captures <paramref name="band"/>, finds the block of text <paramref name="point"/> is on and
+    /// translates just that block - so the result doesn't depend on how wide or tall the text
+    /// happens to be. Returns where the block is on screen (for placing the overlay), or null
+    /// when the OCR engine can't report line positions and the whole band was translated instead.
+    /// An empty translation means no text was near the point.
+    /// </summary>
+    public async Task<(string Translated, Rectangle? SourceBounds)> TranslateBlockAtAsync(
+        Rectangle band, System.Drawing.Point point, CancellationToken ct)
+    {
+        using var bitmap = ScreenCapture.CaptureRegion(band);
+        var lines = await _ocrEngine.RecognizeLinesAsync(bitmap, _settings.SourceLanguageKey, ct);
+
+        if (lines is null)
+        {
+            var recognized = await _ocrEngine.RecognizeAsync(bitmap, _settings.SourceLanguageKey, ct);
+            if (string.IsNullOrWhiteSpace(recognized)) return ("", null);
+            return (await TranslateRecognizedTextAsync(recognized, ct), null);
+        }
+
+        var block = TextBlockLocator.FindBlockAt(lines, new System.Drawing.Point(point.X - band.X, point.Y - band.Y));
+        if (block.Count == 0) return ("", null);
+
+        var text = string.Join("\n", block.Select(l => l.Text));
+        var bounds = block.Select(l => l.Bounds).Aggregate(Rectangle.Union);
+        bounds.Offset(band.Location);
+        return (await TranslateRecognizedTextAsync(text, ct), bounds);
     }
 
     /// <summary>Splits off a speaker/character name and translates it separately from the

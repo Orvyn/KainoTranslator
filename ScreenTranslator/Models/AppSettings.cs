@@ -92,7 +92,10 @@ public sealed class HoverTranslateSettings
     // a default nobody chose.
     public string TriggerKey { get; set; } = "";
     public HoverTranslateMode Mode { get; set; } = HoverTranslateMode.Immediate;
-    public int BoxWidth { get; set; } = 500;
+    // Minimum height of the band captured around the cursor - on larger screens it grows to a
+    // fifth (a third with Windows OCR) of the monitor height. Its width is always the full
+    // monitor width; the text block under the cursor is then found inside it - see
+    // App.HoverTranslate. (An old BoxWidth field in settings.json is just ignored.)
     public int BoxHeight { get; set; } = 140;
 }
 

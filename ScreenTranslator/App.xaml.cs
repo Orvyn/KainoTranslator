@@ -288,14 +288,27 @@ public partial class App : Application
         if (at is { } given) cursor = given;
         else { GetCursorPos(out var p); cursor = p; }
 
-        var w = _settings.HoverTranslate.BoxWidth;
-        var h = _settings.HoverTranslate.BoxHeight;
-        var virtualScreen = System.Windows.Forms.SystemInformation.VirtualScreen;
-        var region = new Rectangle(cursor.X - w / 2, cursor.Y - h / 2, w, h);
-        // Clamp fully inside the virtual screen so a box near a monitor edge doesn't try to
-        // capture negative/off-screen coordinates.
-        region.X = Math.Max(virtualScreen.Left, Math.Min(region.X, virtualScreen.Right - w));
-        region.Y = Math.Max(virtualScreen.Top, Math.Min(region.Y, virtualScreen.Bottom - h));
+        var screenBounds = System.Windows.Forms.Screen.FromPoint(cursor).Bounds;
+
+        // Capture a band across the whole width of the monitor, centered vertically on the
+        // cursor, and let the engine pick out the block of text under the cursor (see
+        // TranslateBlockAtAsync) - so neither the width nor the height of the dialogue matters.
+        // The band is generous (a third of the monitor height) when the OCR engine can locate
+        // lines itself; engines that can't just get the whole band as text, so for those it's
+        // kept tighter (a fifth) to limit stray text. BoxHeight is only the minimum.
+        var divisor = _engine.SupportsBlockDetection ? 3 : 5;
+        var h = Math.Min(screenBounds.Height, Math.Max(_settings.HoverTranslate.BoxHeight, screenBounds.Height / divisor));
+        var region = new Rectangle(screenBounds.Left, cursor.Y - h / 2, screenBounds.Width, h);
+        // Clamped inside the monitor so a cursor near the top/bottom edge doesn't capture
+        // off-screen coordinates.
+        region.Y = Math.Max(screenBounds.Top, Math.Min(region.Y, screenBounds.Bottom - h));
+
+        // Fallback overlay anchor for when the text block's own position isn't known: a compact
+        // box around the cursor rather than the full-width band, so the overlay shows up next to
+        // the text instead of always at screen center.
+        const int overlayAnchorWidth = 500;
+        var anchorX = Math.Max(screenBounds.Left, Math.Min(cursor.X - overlayAnchorWidth / 2, screenBounds.Right - overlayAnchorWidth));
+        var overlayAnchor = new Rectangle(anchorX, region.Y, overlayAnchorWidth, h);
 
         _oneTimeCts?.Cancel();
         _oneTimeCts = new CancellationTokenSource();
@@ -303,11 +316,11 @@ public partial class App : Application
 
         try
         {
-            var translated = await _engine.TranslateOnceAsync(region, ct);
+            var (translated, sourceBounds) = await _engine.TranslateBlockAtAsync(region, cursor, ct);
             if (ct.IsCancellationRequested) return;
             if (string.IsNullOrWhiteSpace(translated)) return; // stay silent on hover misses - a balloon for every empty hover would be noisy
 
-            ShowOneTimeOverlay(region, translated);
+            ShowOneTimeOverlay(sourceBounds ?? overlayAnchor, translated);
         }
         catch (Exception ex)
         {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -41,7 +42,51 @@ public sealed class WindowsOcrEngine : IOcrEngine
         }
     }
 
+    public bool ProvidesLineBounds => true;
+
     public async Task<string> RecognizeAsync(Bitmap bitmap, string languageKey, CancellationToken ct)
+    {
+        var result = await RunOcrAsync(bitmap, languageKey, ct);
+
+        // Windows OCR returns text line-by-line; join with spaces/newlines to keep subtitle
+        // blocks readable while still separating clearly distinct lines.
+        var sb = new StringBuilder();
+        foreach (var line in result.Lines)
+        {
+            if (sb.Length > 0) sb.Append('\n');
+            sb.Append(line.Text);
+        }
+        return sb.ToString().Trim();
+    }
+
+    public async Task<IReadOnlyList<OcrTextLine>?> RecognizeLinesAsync(Bitmap bitmap, string languageKey, CancellationToken ct)
+    {
+        var result = await RunOcrAsync(bitmap, languageKey, ct);
+
+        var lines = new List<OcrTextLine>();
+        foreach (var line in result.Lines)
+        {
+            if (line.Words.Count == 0) continue;
+
+            // A line's box is the union of its words' boxes.
+            double left = double.MaxValue, top = double.MaxValue, right = double.MinValue, bottom = double.MinValue;
+            foreach (var word in line.Words)
+            {
+                var r = word.BoundingRect;
+                left = Math.Min(left, r.X);
+                top = Math.Min(top, r.Y);
+                right = Math.Max(right, r.X + r.Width);
+                bottom = Math.Max(bottom, r.Y + r.Height);
+            }
+
+            lines.Add(new OcrTextLine(
+                line.Text,
+                Rectangle.FromLTRB((int)Math.Floor(left), (int)Math.Floor(top), (int)Math.Ceiling(right), (int)Math.Ceiling(bottom))));
+        }
+        return lines;
+    }
+
+    private static async Task<OcrResult> RunOcrAsync(Bitmap bitmap, string languageKey, CancellationToken ct)
     {
         var info = Models.LanguageCatalog.ByKey(languageKey);
         if (info.WindowsOcrTag == null)
@@ -55,17 +100,7 @@ public sealed class WindowsOcrEngine : IOcrEngine
                 "(enable the \"Optical character recognition\" feature for that language), then restart the app.");
 
         using var softwareBitmap = await ConvertToSoftwareBitmapAsync(bitmap, ct);
-        var result = await engine.RecognizeAsync(softwareBitmap).AsTask(ct);
-
-        // Windows OCR returns text line-by-line; join with spaces/newlines to keep subtitle
-        // blocks readable while still separating clearly distinct lines.
-        var sb = new StringBuilder();
-        foreach (var line in result.Lines)
-        {
-            if (sb.Length > 0) sb.Append('\n');
-            sb.Append(line.Text);
-        }
-        return sb.ToString().Trim();
+        return await engine.RecognizeAsync(softwareBitmap).AsTask(ct);
     }
 
     private static async Task<SoftwareBitmap> ConvertToSoftwareBitmapAsync(Bitmap bitmap, CancellationToken ct)
