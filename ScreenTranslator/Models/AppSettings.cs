@@ -77,11 +77,6 @@ public enum HoverTranslateMode
 
 public sealed class HoverTranslateSettings
 {
-    // What enabling instant translate binds when nothing has been chosen yet (e.g. ticking the
-    // tray item on a fresh install): the mouse's back side button, which - unlike Shift/Ctrl/Alt
-    // - rarely doubles as an in-game action.
-    public const string DefaultTrigger = "Mouse:XButton1";
-
     // Empty means instant translate is off - there's no separate enabled flag; clearing this
     // (Backspace in Settings, or unchecking the tray item) is what turns it off.
     // One field covers all three kinds of trigger: a keyboard key stored as its

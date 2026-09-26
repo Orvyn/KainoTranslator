@@ -193,20 +193,31 @@
                                      PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"/>
 
                             <TextBlock x:Name="HotkeyOpenSettingsLabel" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="OpenSettingsHotkeyBox" IsReadOnly="True" Margin="0,0,0,12"
+                            <TextBox x:Name="OpenSettingsHotkeyBox" IsReadOnly="True"
                                      PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"/>
+                        </StackPanel>
+                    </Border>
 
-                            <TextBlock x:Name="HoverTriggerHeaderText" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="HoverTriggerKeyBox" IsReadOnly="True" Margin="0,0,0,8"
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock x:Name="HoverSectionHeaderText" Style="{StaticResource H2}"/>
+                            <TextBlock x:Name="HoverSectionHintText" Style="{StaticResource Hint}"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <RadioButton x:Name="HoverModeOffRadio" GroupName="HoverMode"
+                                             Margin="0,3,20,3" VerticalAlignment="Center"
+                                             Checked="OnHoverModeChanged"/>
+                                <RadioButton x:Name="HoverModeImmediateRadio" GroupName="HoverMode"
+                                             Margin="0,3,20,3" VerticalAlignment="Center"
+                                             Checked="OnHoverModeChanged"/>
+                                <RadioButton x:Name="HoverModeConfirmRadio" GroupName="HoverMode"
+                                             Margin="0,3,0,3" VerticalAlignment="Center"
+                                             Checked="OnHoverModeChanged"/>
+                            </StackPanel>
+
+                            <TextBox x:Name="HoverTriggerKeyBox" IsReadOnly="True"
                                      PreviewKeyDown="OnHoverTriggerKeyBoxPreviewKeyDown"
                                      PreviewMouseDown="OnHoverTriggerKeyBoxPreviewMouseDown"/>
-
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton x:Name="HoverModeImmediateRadio" GroupName="HoverMode"
-                                             Margin="0,3,20,3" VerticalAlignment="Center"/>
-                                <RadioButton x:Name="HoverModeConfirmRadio" GroupName="HoverMode"
-                                             Margin="0,3,0,3" VerticalAlignment="Center"/>
-                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

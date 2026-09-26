@@ -152,14 +152,16 @@ public static class Loc
 
         // ===== Tab: Hotkeys =====
         ["Settings.HotkeysHeader"] = "Настройка сочетаний клавиш",
-        ["Settings.HotkeysHint"] = "Кликните по полю и нажмите нужное сочетание клавиш (обязательно с Ctrl, Alt, Shift или Win). Для мгновенного перевода подойдёт и одна клавиша, и кнопка мыши (кроме ЛКМ). Backspace — очистить, тогда хоткей не назначен.",
+        ["Settings.HotkeysHint"] = "Кликните по полю и нажмите нужное сочетание клавиш (обязательно с Ctrl, Alt, Shift или Win). Backspace — очистить, тогда хоткей не назначен.",
         ["Settings.HotkeySelectRegion"] = "Выбрать область экрана",
         ["Settings.HotkeyToggle"] = "Включить / выключить перевод",
         ["Settings.HotkeyOnce"] = "Перевести область один раз (не меняя основную область)",
         ["Settings.HotkeyRetranslate"] = "Перевести заново",
-        ["Settings.HoverTriggerHeader"] = "Мгновенный перевод",
+        ["Settings.HoverSectionHeader"] = "Мгновенный перевод",
+        ["Settings.HoverSectionHint"] = "Данная функция позволяет переводить весь текст рядом с курсором, не выделяя область. Поддерживаются одиночная клавиша, сочетание клавиш или одиночное нажатие кнопки мыши, кроме ЛКМ. В некоторых играх одиночная клавиша или кнопка мыши может не сработать. В таком случае назначьте сочетание с модификатором (например, Ctrl+F).",
+        ["Settings.HoverModeOff"] = "Выкл.",
         ["Settings.HoverModeImmediate"] = "Сразу",
-        ["Settings.HoverModeConfirm"] = "После подтверждения (курсор, затем клик по области)",
+        ["Settings.HoverModeConfirm"] = "После подтверждения",
         ["Settings.HotkeyOpenSettings"] = "Открыть настройки",
 
         // ===== Tab: Appearance =====
@@ -340,14 +342,16 @@ public static class Loc
 
         // ===== Tab: Hotkeys =====
         ["Settings.HotkeysHeader"] = "Hotkey configuration",
-        ["Settings.HotkeysHint"] = "Click a field and press the combination you want (must include Ctrl, Alt, Shift, or Win). Instant translate also accepts a single key or a mouse button (except left-click). Backspace clears it, leaving that hotkey unset.",
+        ["Settings.HotkeysHint"] = "Click a field and press the combination you want (must include Ctrl, Alt, Shift, or Win). Backspace clears it, leaving that hotkey unset.",
         ["Settings.HotkeySelectRegion"] = "Select capture area",
         ["Settings.HotkeyToggle"] = "Start / stop translation",
         ["Settings.HotkeyOnce"] = "Translate an area once (without changing the main area)",
         ["Settings.HotkeyRetranslate"] = "Re-translate",
-        ["Settings.HoverTriggerHeader"] = "Instant translate",
+        ["Settings.HoverSectionHeader"] = "Instant translate",
+        ["Settings.HoverSectionHint"] = "This feature translates all the text near the cursor without selecting a region. It supports a single key, a keyboard combo, or a single mouse button press (except left-click). In some games a single key or mouse button may not work. In that case, bind a modifier combo instead (e.g. Ctrl+F).",
+        ["Settings.HoverModeOff"] = "Off",
         ["Settings.HoverModeImmediate"] = "Immediately",
-        ["Settings.HoverModeConfirm"] = "After confirming (cursor appears, then click the spot)",
+        ["Settings.HoverModeConfirm"] = "After confirming",
         ["Settings.HotkeyOpenSettings"] = "Open settings",
 
         // ===== Tab: Appearance =====

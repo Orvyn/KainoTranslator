@@ -158,7 +158,10 @@ public partial class SettingsWindow : Window
         HotkeyOnceLabel.Text = Loc.S("Settings.HotkeyOnce");
         HotkeyRetranslateLabel.Text = Loc.S("Settings.HotkeyRetranslate");
         HotkeyOpenSettingsLabel.Text = Loc.S("Settings.HotkeyOpenSettings");
-        HoverTriggerHeaderText.Text = Loc.S("Settings.HoverTriggerHeader");
+
+        HoverSectionHeaderText.Text = Loc.S("Settings.HoverSectionHeader");
+        HoverSectionHintText.Text = Loc.S("Settings.HoverSectionHint");
+        HoverModeOffRadio.Content = Loc.S("Settings.HoverModeOff");
         HoverModeImmediateRadio.Content = Loc.S("Settings.HoverModeImmediate");
         HoverModeConfirmRadio.Content = Loc.S("Settings.HoverModeConfirm");
 
@@ -231,8 +234,18 @@ public partial class SettingsWindow : Window
         RetranslateHotkeyBox.Text = _working.Hotkeys.Retranslate.Combo;
         OpenSettingsHotkeyBox.Text = _working.Hotkeys.OpenSettings.Combo;
         HoverTriggerKeyBox.Text = _working.HoverTranslate.TriggerKey;
-        HoverModeConfirmRadio.IsChecked = _working.HoverTranslate.Mode == HoverTranslateMode.ConfirmClick;
-        HoverModeImmediateRadio.IsChecked = !HoverModeConfirmRadio.IsChecked.Value;
+        if (string.IsNullOrEmpty(_working.HoverTranslate.TriggerKey))
+        {
+            HoverModeOffRadio.IsChecked = true;
+        }
+        else if (_working.HoverTranslate.Mode == HoverTranslateMode.ConfirmClick)
+        {
+            HoverModeConfirmRadio.IsChecked = true;
+        }
+        else
+        {
+            HoverModeImmediateRadio.IsChecked = true;
+        }
 
         DeepLKeyBox.Text = _working.ApiKeys.DeepLApiKey;
         DeepLProCheck.IsChecked = _working.ApiKeys.DeepLUseProEndpoint;
@@ -668,6 +681,24 @@ public partial class SettingsWindow : Window
     }
 
     /// <summary>
+    /// Shows the trigger box only for the two "on" modes - "Off" has nothing to configure, and
+    /// clearing the trigger now happens by picking "Off" rather than by clearing the box (see
+    /// OnHoverTriggerKeyBoxPreviewKeyDown). Switching on for the first time (box still empty)
+    /// fills in Ctrl+F: a modifier+key combo, so it goes through RegisterHotKey like the other
+    /// hotkeys and isn't affected by the anti-cheat input-hook blocking a bare key/mouse trigger
+    /// can run into in some games.
+    /// </summary>
+    private void OnHoverModeChanged(object sender, RoutedEventArgs e)
+    {
+        if (HoverTriggerKeyBox is null) return; // fires while InitializeComponent is still wiring up controls
+
+        var isOff = HoverModeOffRadio.IsChecked == true;
+        HoverTriggerKeyBox.Visibility = isOff ? Visibility.Collapsed : Visibility.Visible;
+        if (!isOff && string.IsNullOrEmpty(HoverTriggerKeyBox.Text))
+            HoverTriggerKeyBox.Text = "Ctrl+F";
+    }
+
+    /// <summary>
     /// Captures the instant-translate trigger, which can be a single bare key (modifier keys
     /// included - Shift, Ctrl, Alt, CapsLock are exactly the keys meant to be tapped alone), a
     /// modifier+key combo, or (see the mouse handler below) a mouse button. Pressing a modifier
@@ -683,7 +714,6 @@ public partial class SettingsWindow : Window
         if (key == Key.Tab) return;
 
         e.Handled = true;
-        if (key == Key.Back) { ((TextBox)sender).Text = ""; return; }
         if (key is Key.None or Key.DeadCharProcessed) return;
 
         var isModifier = IsModifierKey(key);
@@ -768,13 +798,17 @@ public partial class SettingsWindow : Window
         RequireHotkey(OneTimeHotkeyBox.Text);
         RequireHotkey(RetranslateHotkeyBox.Text);
         RequireHotkey(OpenSettingsHotkeyBox.Text);
-        RequireTrigger(HoverTriggerKeyBox.Text);
+        var hoverOff = HoverModeOffRadio.IsChecked == true;
+        if (!hoverOff) RequireTrigger(HoverTriggerKeyBox.Text);
         _working.Hotkeys.SelectRegion.Combo = SelectRegionHotkeyBox.Text;
         _working.Hotkeys.ToggleTranslation.Combo = ToggleHotkeyBox.Text;
         _working.Hotkeys.OneTimeTranslate.Combo = OneTimeHotkeyBox.Text;
         _working.Hotkeys.Retranslate.Combo = RetranslateHotkeyBox.Text;
         _working.Hotkeys.OpenSettings.Combo = OpenSettingsHotkeyBox.Text;
-        _working.HoverTranslate.TriggerKey = HoverTriggerKeyBox.Text;
+        // "Off" is its own radio now rather than an empty box, so it wins regardless of what's
+        // still sitting in the (hidden) trigger box - that text is kept around only so flipping
+        // back to Immediate/Confirm doesn't force a re-pick.
+        _working.HoverTranslate.TriggerKey = hoverOff ? "" : HoverTriggerKeyBox.Text;
         _working.HoverTranslate.Mode = HoverModeConfirmRadio.IsChecked == true ? HoverTranslateMode.ConfirmClick : HoverTranslateMode.Immediate;
 
         _working.ApiKeys.DeepLApiKey = DeepLKeyBox.Text.Trim();
@@ -850,8 +884,8 @@ public partial class SettingsWindow : Window
     /// modifier+key combo.</summary>
     private static void RequireTrigger(string trigger)
     {
-        if (string.IsNullOrEmpty(trigger)) return; // cleared via Backspace - instant translate is off
-
+        // Only called for the "Immediate"/"Confirm" modes now - "Off" (an empty trigger) never
+        // reaches this, see the hoverOff check at the call site.
         if (trigger.StartsWith("Mouse:", StringComparison.Ordinal))
         {
             if (Enum.TryParse<Hotkeys.HoverMouseButton>(trigger["Mouse:".Length..], out _)) return;

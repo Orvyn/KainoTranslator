@@ -29,7 +29,11 @@ public partial class App : Application
     private LeftClickWatcher? _leftClickWatcher;
     private System.Windows.Forms.ToolStripMenuItem? _hoverTrayMenuItem;
     private bool _suppressHoverTrayToggle;
-    private string _lastHoverTriggerKey = HoverTranslateSettings.DefaultTrigger; // remembered so unchecking then rechecking the tray item restores it instead of forcing a re-pick
+    // Remembered so unchecking then rechecking the tray item restores it instead of forcing a
+    // re-pick. Defaults to Ctrl+F: a modifier+key combo, so it goes through RegisterHotKey like
+    // every other hotkey and isn't affected by the anti-cheat input-hook blocking that a bare
+    // key/mouse-button trigger can run into in some games (see Settings.HoverSectionHint).
+    private string _lastHoverTriggerKey = "Ctrl+F";
     private OverlayWindow _overlay = null!;
     private System.Windows.Forms.NotifyIcon _trayIcon = null!;
     private SettingsWindow? _settingsWindow;

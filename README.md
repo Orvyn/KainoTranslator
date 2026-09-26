@@ -179,3 +179,8 @@ KainoTranslator/
   translator rejects a request.
 - If a hotkey doesn't fire, another application likely already registered that exact
   combination system-wide; pick a different combo in Settings.
+- Instant translate bound to a single key or mouse button is delivered through a low-level input
+  hook, which some anti-cheat protected games block while they have focus - the trigger then
+  simply does nothing in that game, with no error to point at it. If that happens, bind a
+  modifier+key combo instead (e.g. `Ctrl+F`); combos go through the same OS-level mechanism as
+  every other hotkey and aren't affected.
