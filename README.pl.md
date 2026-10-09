@@ -10,7 +10,7 @@ oknach dialogowych, napisach w filmach oraz dowolnym obcojęzycznym tekście na 
   — wszystko za pomocą skrótów klawiszowych.
 - Rozpoznaje tekst za pomocą **Windows OCR** (zalecana opcja domyślna, wbudowana w Windows, bez
   konfiguracji) lub, jeśli wolisz, starszych silników **Tesseract** / **EasyOCR**.
-- Tłumaczy za pomocą **DeepL**, **Google Translate**, **Yandex Translate** lub **Papago**.
+- Tłumaczy za pomocą **DeepL**, **Google Translate**, **Yandex Translate**, **Papago** lub dowolnego dostawcy **kompatybilnego z OpenAI** (Gemini, DeepSeek, OpenAI, modele lokalne).
 - Solidne wsparcie dla języka angielskiego, japońskiego, chińskiego (uproszczonego i
   tradycyjnego), koreańskiego i rosyjskiego, a także ok. 25 dodatkowych języków (francuski,
   niemiecki, hiszpański, włoski, portugalski, niderlandzki, polski, turecki, wietnamski, tajski,
@@ -20,9 +20,15 @@ oknach dialogowych, napisach w filmach oraz dowolnym obcojęzycznym tekście na 
   Google nie był blokowany po adresie IP przy intensywnym użytkowaniu.
 - Nakładka przezroczysta dla kliknięć, przyjazna trybowi bez ramki, zaprojektowana tak, by
   wyświetlać się nad grami bez przechwytywania fokusu ani wejścia.
+- Dwa sposoby pokazywania tłumaczenia: w osobnym oknie albo jako **nakładka**, która rozmywa
+  oryginalny tekst na ekranie i rysuje tłumaczenie dokładnie w jego miejscu (imię mówiącego jest
+  wyróżnione pogrubieniem).
+- Tłumacze AI (kompatybilni z OpenAI) uwzględniają **słownik**, krótki opis gry i poprzednie
+  kwestie dialogu; słownik ze stałymi tłumaczeniami imion i terminów działa z każdym translatorem.
+- Jasny i ciemny motyw (domyślnie zgodny z Windows); interfejs po rosyjsku lub angielsku.
 
-> **Uwaga:** obecnie interfejs samej aplikacji jest wyłącznie w języku rosyjskim. Nazwy
-> zakładek/menu podane są poniżej tak, jak faktycznie wyglądają w aplikacji (po rosyjsku), z
+> **Uwaga:** interfejs aplikacji jest dostępny po rosyjsku i angielsku (**Настройки > Прочее**
+> (Inne)). Nazwy zakładek/menu podane są poniżej tak, jak wyglądają w rosyjskim interfejsie, z
 > polskim tłumaczeniem w nawiasie przy pierwszym wystąpieniu.
 
 ## Wymagania
@@ -56,8 +62,9 @@ Brak okna po uruchomieniu jest zamierzony; jeśli nie widzisz ikony w zasobniku,
 | Włącz / wyłącz tłumaczenie na żywo                  | `Ctrl+Shift+S`  |
 | Przetłumacz obszar jednorazowo                       | `Ctrl+Shift+D`  |
 | Otwórz ustawienia                                   | `Ctrl+Shift+O`  |
+| Przetłumacz bieżący obszar ponownie                 | `Ctrl+Shift+R`  |
 
-Wszystkie cztery można zmienić w zakładce **Горячие клавиши** (Skróty klawiszowe) — kliknij pole
+Wszystkie te skróty można zmienić w zakładce **Горячие клавиши** (Skróty klawiszowe) — kliknij pole
 i naciśnij żądaną kombinację (musi zawierać co najmniej jeden klawisz modyfikujący: Ctrl, Alt,
 Shift lub Win). Jeśli rejestracja skrótu się nie powiedzie (pojawi się dymek powiadomienia w
 zasobniku), oznacza to, że ta kombinacja jest już używana przez inną aplikację — wybierz inną.
@@ -65,6 +72,13 @@ zasobniku), oznacza to, że ta kombinacja jest już używana przez inną aplikac
 Skrót „przetłumacz obszar jednorazowo" pozwala wybrać dowolny obszar ekranu i przetłumaczyć go
 jednorazowo (np. fragment tekstu, który pojawił się gdzie indziej na ekranie), bez zmiany
 głównego obszaru przechwytywania i bez przerywania trwającego tłumaczenia na żywo.
+
+**Natychmiastowe tłumaczenie** nie wymaga zaznaczania obszaru: wskaż tekst kursorem i użyj
+wyzwalacza (klawisz, przycisk myszy lub kombinacja z klawiszem modyfikującym) — przetłumaczony
+zostanie blok tekstu pod kursorem. Domyślnie jest wyłączone, dopóki nie przypiszesz wyzwalacza w
+zakładce **Горячие клавиши**; tam też wybierzesz, czy tłumaczyć od razu, czy dopiero po
+potwierdzeniu. **Przetłumacz ponownie** (`Ctrl+Shift+R`) rozpoznaje i tłumaczy bieżący obszar od
+nowa z pominięciem pamięci podręcznej — przydatne, gdy tłumaczenie wyszło zniekształcone.
 
 ## Pierwsza konfiguracja
 
@@ -102,6 +116,13 @@ głównego obszaru przechwytywania i bez przerywania trwającego tłumaczenia na
 | **Google Translate** | Nic nie jest wymagane | Działa od razu przez darmowy endpoint webowy Google. Dodaj klucz Cloud Translation API, jeśli potrzebujesz gwarantowanej dostępności/limitu zamiast darmowego endpointu. |
 | **Yandex Translate** | Klucz API + Folder ID z Yandex Cloud | Oba pola są wymagane. |
 | **Papago** | Client ID + Client Secret z konsoli NAVER Cloud Platform | Papago obsługuje tylko ograniczony zestaw par językowych, głównie za pośrednictwem koreańskiego/angielskiego/japońskiego/chińskiego — dostępne będą tylko obsługiwane języki docelowe. |
+| **Kompatybilny z OpenAI** | Klucz (a dla „Inny" — adres URL) | Wybierz **Gemini** (plan darmowy), **DeepSeek** (płatny po tokenach próbnych), **ChatGPT (OpenAI)** lub **Inny** dla dowolnego dostawcy z API chat-completions zgodnym z OpenAI (Groq, lokalny serwer typu Ollama/LM Studio itp.) z własnym adresem URL. Przycisk „Odśwież listę" pobiera z serwera faktycznie dostępne modele, więc nie trzeba wpisywać identyfikatora modelu ręcznie. Jakość i szybkość tłumaczenia zależą od wybranego modelu. |
+
+**Słownik i kontekst dla AI.** Zakładka **Глоссарий** (Słownik) zawiera stałe tłumaczenia imion i
+terminów, w kilku profilach z eksportem/importem do `.json`. Zwykłe translatory dostają je przez
+zamienniki, tłumacze AI (kompatybilni z OpenAI) — bezpośrednio, razem z krótkim opisem tego, co
+jest tłumaczone (zakładka **Перевод** (Tłumaczenie): gra, gatunek, ton) i poprzednimi kwestiami
+dialogu, dzięki czemu imiona są odmieniane poprawnie, a dialog pozostaje spójny.
 
 ## Serwery proxy
 
@@ -138,6 +159,14 @@ włączona, gdy lista nie jest pusta) rozkłada obciążenie na różne adresy I
 ## Wygląd nakładki
 
 Zakładka **Оформление** (Wygląd) pozwala ustawić:
+- Sposób wyświetlania. **W osobnym oknie** (domyślnie) pokazuje tłumaczenie w ramce. **Nakładka**
+  rozmywa oryginalny tekst na ekranie i rysuje tłumaczenie w jego miejscu, kolorem oryginału;
+  imię mówiącego trafia do osobnego wiersza — pogrubione i w kolorze akcentu. Nakładka działa
+  tylko z Windows OCR (Windows 10 w wersji 2004 lub nowszej) — przy innym silniku używane jest
+  osobne okno, a aplikacja o tym informuje. Pozycja, rozmiar i kolory poniżej dotyczą osobnego
+  okna; w trybie nakładki tłumaczenie jest rysowane nad oryginałem, przepuszcza kliknięcia i
+  zostaje, dopóki oryginał jest na ekranie (przy tłumaczeniu na żywo automatyczne ukrywanie nie działa). Kontur/cień
+  działają w obu sposobach.
 - Pozycję (domyślnie: górna część ekranu, wyśrodkowana), rozmiar czcionki i maksymalną szerokość
   (domyślnie 1200px).
 - Kolor tekstu i kolor tła (hex, np. `#FFFFFF`) z podglądem na żywo oraz przezroczystość tła
@@ -178,8 +207,8 @@ KainoTranslator/
   TranslationEngine.cs        - pętla przechwytywanie -> OCR -> tłumaczenie -> nakładka
   Capture/                    - interfejs wyboru obszaru + przechwytywanie ekranu + haszowanie klatek
   Ocr/                        - IOcrEngine + implementacje Windows OCR / Tesseract / EasyOCR
-  Translation/                - ITranslator + implementacje DeepL / Google / Yandex / Papago, menedżer proxy
-  Overlay/                    - zawsze widoczne na wierzchu okno nakładki z tłumaczeniem
+  Translation/                - ITranslator + implementacje DeepL / Google / Yandex / Papago / kompatybilny z OpenAI, menedżer proxy
+  Overlay/                    - zawsze widoczne okna: okno tłumaczenia i nakładka (rozmywa oryginał)
   Hotkeys/                    - rejestracja globalnych skrótów klawiszowych (RegisterHotKey)
   SettingsUi/                 - okno ustawień
   Models/                     - AppSettings (zapisywane w %AppData%\KainoTranslator\settings.json), LanguageCatalog
@@ -196,3 +225,15 @@ KainoTranslator/
   zamiast zawodzić po cichu, gdy translator odrzuci żądanie.
 - Jeśli skrót klawiszowy nie działa, prawdopodobnie ta sama kombinacja jest już zarejestrowana
   globalnie przez inną aplikację — wybierz inną kombinację w ustawieniach.
+- Nakładka zasłania oryginał rozmytą migawką ekranu zrobioną w chwili rozpoznania tekstu, więc
+  animowane tło za tekstem stoi w miejscu, dopóki tekst się nie zmieni. Aby nie mnożyć zapytań,
+  tłumaczone jest tylko kilka największych bloków tekstu w obszarze.
+- Błąd 429 z darmowego endpointu Google oznacza, że ograniczył on Twój adres IP. Po błędzie
+  aplikacja wydłuża przerwy między próbami (do 30 sekund), pokazuje ten sam komunikat najwyżej raz
+  na minutę i ponawia próbę dla tego samego tekstu dopiero po tych przerwach. Dodaj serwery proxy lub klucz Cloud
+  Translation API, zwiększ interwał sprawdzania albo wybierz innego translatora.
+- Natychmiastowe tłumaczenie przypisane do pojedynczego klawisza lub przycisku myszy jest
+  obsługiwane przez niskopoziomowy hak wejścia, który niektóre gry z ochroną anty-cheat blokują,
+  gdy mają fokus — wyzwalacz po prostu nic wtedy nie robi, bez żadnego błędu. Przypisz wtedy
+  kombinację z klawiszem modyfikującym (np. `Ctrl+F`); kombinacje korzystają z tego samego
+  mechanizmu systemowego co pozostałe skróty i nie są blokowane.

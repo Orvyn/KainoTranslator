@@ -1,0 +1,17 @@
+<Window x:Class="ScreenTranslator.Overlay.ReplaceOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="KainoTranslator - Replace overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        ShowActivated="False"
+        Focusable="False"
+        Width="10"
+        Height="10">
+    <Canvas x:Name="Surface" Background="Transparent" ClipToBounds="True"/>
+</Window>

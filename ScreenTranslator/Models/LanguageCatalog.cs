@@ -91,6 +91,9 @@ public static class LanguageCatalog
         TranslatorKind.Google => All.Where(l => l.GoogleCode != null),
         TranslatorKind.Yandex => All.Where(l => l.YandexCode != null),
         TranslatorKind.Papago => All.Where(l => l.PapagoSupported),
+        // An LLM has no fixed language-code table - the target is just named in the prompt (see
+        // OpenAiCompatibleTranslator), so every language here is usable.
+        TranslatorKind.OpenAiCompatible => All,
         _ => All
     };
 }

@@ -5,7 +5,10 @@
         Width="540" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Topmost="True">
+        Topmost="True"
+        FontFamily="Segoe UI"
+        Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource BgBrush}">
     <StackPanel Margin="24">
         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="🌐" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
@@ -33,16 +36,16 @@
                         <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock x:Name="HotkeySelectRegionLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
-                    <TextBlock x:Name="HotkeyRegion" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HotkeyRegion" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
 
                     <TextBlock x:Name="HotkeyToggleLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
-                    <TextBlock x:Name="HotkeyToggle" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HotkeyToggle" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
 
                     <TextBlock x:Name="HotkeyOnceLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,6"/>
-                    <TextBlock x:Name="HotkeyOnce" Grid.Row="2" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HotkeyOnce" Grid.Row="2" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
 
                     <TextBlock x:Name="HotkeyOpenSettingsLabel" Grid.Row="3" Grid.Column="0" Style="{StaticResource Label}" TextWrapping="Wrap" Margin="0,0,10,0"/>
-                    <TextBlock x:Name="HotkeyOpenSettings" Grid.Row="3" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HotkeyOpenSettings" Grid.Row="3" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                 </Grid>
                 <TextBlock x:Name="HotkeysFooterText" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
             </StackPanel>
@@ -65,7 +68,7 @@
         </Border>
 
         <CheckBox x:Name="DontShowAgainCheck" Margin="0,4,0,14">
-            <TextBlock x:Name="DontShowAgainText" TextWrapping="Wrap"/>
+            <TextBlock x:Name="DontShowAgainText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
         </CheckBox>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

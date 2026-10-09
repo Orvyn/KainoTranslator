@@ -11,7 +11,7 @@ Bildschirm.
   ein-/ausschalten, Einstellungen per Tastenkombination öffnen.
 - Erkennt Text mit **Windows OCR** (empfohlener Standard, in Windows integriert, keine
   Einrichtung nötig) oder wahlweise mit den älteren Engines **Tesseract** / **EasyOCR**.
-- Übersetzt mit **DeepL**, **Google Translate**, **Yandex Translate** oder **Papago**.
+- Übersetzt mit **DeepL**, **Google Translate**, **Yandex Translate**, **Papago** oder jedem **OpenAI-kompatiblen** Anbieter (Gemini, DeepSeek, OpenAI, lokale Modelle).
 - Starke Unterstützung für Englisch, Japanisch, Chinesisch (vereinfacht & traditionell),
   Koreanisch und Russisch, plus ca. 25 weitere Sprachen (Französisch, Deutsch, Spanisch,
   Italienisch, Portugiesisch, Niederländisch, Polnisch, Türkisch, Vietnamesisch, Thailändisch,
@@ -21,10 +21,18 @@ Bildschirm.
   Google-Endpunkt bei starker Nutzung nicht per IP gedrosselt wird.
 - Klickdurchlässige, für randlose Spiele geeignete Einblendung, die weder Fokus noch
   Eingaben blockiert.
+- Zwei Arten, eine Übersetzung anzuzeigen: in einem eigenen Fenster oder als **Überlagerung**,
+  die den Originaltext auf dem Bildschirm unscharf macht und die Übersetzung genau an seiner
+  Stelle einzeichnet (der Sprechername wird fett abgesetzt).
+- KI-Übersetzer (OpenAI-kompatibel) berücksichtigen ein **Glossar**, eine kurze Beschreibung des
+  Spiels und die vorherigen Dialogzeilen; ein Glossar mit festen Übersetzungen für Namen und
+  Begriffe funktioniert mit jedem Übersetzer.
+- Helles und dunkles Design (standardmäßig wie Windows); die Oberfläche gibt es auf Russisch und
+  Englisch.
 
-> **Hinweis:** Die Benutzeroberfläche der App selbst ist derzeit ausschließlich auf Russisch.
-> Tab-/Menünamen werden unten so angegeben, wie sie tatsächlich in der App erscheinen
-> (Russisch), mit einer deutschen Übersetzung in Klammern bei der ersten Erwähnung.
+> **Hinweis:** Die Oberfläche der App gibt es auf Russisch und Englisch (**Настройки > Прочее**
+> (Sonstiges)). Tab-/Menünamen werden unten so angegeben, wie sie in der russischen Oberfläche
+> erscheinen, mit einer deutschen Übersetzung in Klammern bei der ersten Erwähnung.
 
 ## Voraussetzungen
 
@@ -57,8 +65,9 @@ sehen, prüfen Sie den Pfeil „Ausgeblendete Symbole einblenden" in der Tasklei
 | Live-Übersetzung starten/stoppen                 | `Ctrl+Shift+S`  |
 | Bereich einmalig übersetzen                       | `Ctrl+Shift+D`  |
 | Einstellungen öffnen                              | `Ctrl+Shift+O`  |
+| Aktuellen Bereich neu übersetzen                  | `Ctrl+Shift+R`  |
 
-Alle vier lassen sich im Tab **Горячие клавиши** (Tastenkombinationen) ändern — klicken Sie in
+Alle lassen sich im Tab **Горячие клавиши** (Tastenkombinationen) ändern — klicken Sie in
 das Feld und drücken Sie die gewünschte Kombination (muss mindestens eine Zusatztaste wie Ctrl,
 Alt, Shift oder Win enthalten). Falls eine Tastenkombination nicht registriert werden kann
 (Meldung als Sprechblase im Infobereich), verwendet bereits eine andere App diese Kombination —
@@ -68,6 +77,13 @@ Mit der Tastenkombination „Bereich einmalig übersetzen" können Sie einen bel
 Bildschirmbereich auswählen und einmalig übersetzen (z. B. Text, der an anderer Stelle auf dem
 Bildschirm erschienen ist), ohne den Haupterfassungsbereich zu verändern oder eine laufende
 Live-Übersetzung zu unterbrechen.
+
+**Sofortübersetzung** braucht keine Bereichsauswahl: Zeigen Sie auf einen Text und lösen Sie den
+Auslöser aus (Taste, Maustaste oder Kombination mit Zusatztaste) — der Textblock unter dem
+Mauszeiger wird übersetzt. Sie bleibt ausgeschaltet, bis Sie im Tab **Горячие клавиши** einen
+Auslöser festlegen; dort lässt sich auch wählen, ob sofort oder erst nach Bestätigung übersetzt
+wird. **Neu übersetzen** (`Ctrl+Shift+R`) erkennt und übersetzt den aktuellen Bereich erneut und
+ignoriert dabei den Zwischenspeicher — nützlich, wenn eine Übersetzung unbrauchbar ausfiel.
 
 ## Erste Einrichtung
 
@@ -107,6 +123,13 @@ Live-Übersetzung zu unterbrechen.
 | **Google Translate** | Nichts erforderlich | Funktioniert sofort über den kostenlosen Web-Endpunkt von Google. Für garantierte Verfügbarkeit/Kontingent statt des kostenlosen Endpunkts einen Cloud-Translation-API-Schlüssel hinzufügen. |
 | **Yandex Translate** | API-Schlüssel + Folder ID von Yandex Cloud | Beide Felder sind erforderlich. |
 | **Papago** | Client ID + Client Secret aus der NAVER-Cloud-Platform-Konsole | Papago unterstützt nur eine begrenzte Anzahl an Sprachpaaren, hauptsächlich über Koreanisch/Englisch/Japanisch/Chinesisch — es werden nur unterstützte Zielsprachen zur Auswahl angezeigt. |
+| **OpenAI-kompatibel** | Schlüssel (bei „Andere" zusätzlich eine URL) | **Gemini** (kostenlose Stufe), **DeepSeek** (nach den Test-Token kostenpflichtig), **ChatGPT (OpenAI)** oder **Andere** für jeden Anbieter mit OpenAI-kompatibler Chat-Completions-API (Groq, lokaler Server wie Ollama/LM Studio usw.) mit eigener URL. Die Schaltfläche „Liste aktualisieren" lädt die tatsächlich verfügbaren Modelle vom Server, sodass keine Modell-ID von Hand eingetragen werden muss. Qualität und Geschwindigkeit hängen vom gewählten Modell ab. |
+
+**Glossar und KI-Kontext.** Der Tab **Глоссарий** (Glossar) enthält feste Übersetzungen für
+Namen und Begriffe, in mehreren Profilen mit Export/Import als `.json`. Normale Übersetzer
+erhalten sie per Platzhalter, KI-Übersetzer (OpenAI-kompatibel) direkt — zusammen mit einer
+kurzen Beschreibung des Inhalts (Tab **Перевод** (Übersetzung): Spiel, Genre, Ton) und den
+vorherigen Dialogzeilen, damit Namen richtig gebeugt werden und der Dialog zusammenhängend bleibt.
 
 ## Proxys
 
@@ -146,6 +169,15 @@ aktiv, sobald die Liste nicht leer ist) verteilt die Last auf unterschiedliche I
 ## Erscheinungsbild der Einblendung
 
 Im Tab **Оформление** (Erscheinungsbild) lässt sich einstellen:
+- Anzeigeart. **In einem eigenen Fenster** (Standard) zeigt die Übersetzung in einem Kasten.
+  **Überlagerung** macht den Originaltext auf dem Bildschirm unscharf und zeichnet die
+  Übersetzung an seiner Stelle in der Farbe des Originals; der Sprechername steht fett und in
+  einer Akzentfarbe in einer eigenen Zeile. Die Überlagerung funktioniert nur mit Windows OCR
+  (Windows 10 Version 2004 oder neuer) — bei einer anderen Engine wird das eigene Fenster
+  verwendet, und die App weist darauf hin. Position, Größe und Farben unten gehören zum eigenen
+  Fenster; bei der Überlagerung wird die Übersetzung klickdurchlässig über das Original gezeichnet
+  und bleibt, solange das Original sichtbar ist (bei der Live-Übersetzung gilt automatisches Ausblenden dort nicht).
+  Kontur/Schatten gelten für beide Arten.
 - Position (Standard: oben mittig auf dem Bildschirm), Schriftgröße und maximale Breite
   (Standard 1200px).
 - Text- und Hintergrundfarbe (Hex, z. B. `#FFFFFF`) mit Live-Vorschau, sowie
@@ -189,8 +221,8 @@ KainoTranslator/
   TranslationEngine.cs        - Schleife: Erfassung -> OCR -> Übersetzung -> Einblendung
   Capture/                    - Bereichsauswahl-UI + Bildschirmerfassung + Frame-Hashing
   Ocr/                        - IOcrEngine + Implementierungen für Windows OCR / Tesseract / EasyOCR
-  Translation/                - ITranslator + Implementierungen für DeepL / Google / Yandex / Papago, Proxy-Verwaltung
-  Overlay/                    - stets im Vordergrund angezeigtes Einblendungsfenster
+  Translation/                - ITranslator + Implementierungen für DeepL / Google / Yandex / Papago / OpenAI-kompatibel, Proxy-Verwaltung
+  Overlay/                    - stets im Vordergrund angezeigte Fenster: Übersetzungsfenster und Überlagerung (macht das Original unscharf)
   Hotkeys/                    - Registrierung globaler Tastenkombinationen (RegisterHotKey)
   SettingsUi/                 - das Einstellungsfenster
   Models/                     - AppSettings (gespeichert unter %AppData%\KainoTranslator\settings.json), LanguageCatalog
@@ -207,3 +239,17 @@ KainoTranslator/
   statt bei Ablehnung einer Anfrage durch den Übersetzer stillschweigend zu scheitern.
 - Falls eine Tastenkombination nicht auslöst, hat wahrscheinlich bereits eine andere Anwendung
   genau diese Kombination systemweit registriert — wählen Sie eine andere in den Einstellungen.
+- Die Überlagerung deckt das Original mit einem unscharfen Bildschirmfoto ab, das beim Erkennen
+  des Textes aufgenommen wurde; ein animierter Hintergrund hinter dem Text steht daher still, bis
+  sich der Text ändert. Damit nicht zu viele Anfragen entstehen, werden nur die größten
+  Textblöcke im Bereich übersetzt.
+- Meldet der kostenlose Google-Endpunkt Fehler 429, drosselt er Ihre IP. Nach einem Fehler wartet
+  die App länger zwischen den Versuchen (bis 30 Sekunden), zeigt dieselbe Meldung höchstens
+  einmal pro Minute und versucht denselben Text erst nach diesen Pausen erneut. Fügen Sie Proxys oder einen
+  Cloud-Translation-API-Schlüssel hinzu, verlängern Sie das Abfrageintervall oder wählen Sie
+  einen anderen Übersetzer.
+- Die Sofortübersetzung auf einer einzelnen Taste oder Maustaste läuft über einen
+  Low-Level-Eingabehook, den manche Spiele mit Anti-Cheat blockieren, solange sie im Fokus sind —
+  der Auslöser tut dann einfach nichts, ohne Fehlermeldung. Legen Sie in diesem Fall stattdessen
+  eine Kombination mit Zusatztaste fest (z. B. `Ctrl+F`); Kombinationen nutzen denselben
+  Systemmechanismus wie alle anderen Tastenkombinationen und sind davon nicht betroffen.

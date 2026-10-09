@@ -29,14 +29,21 @@ public sealed class ProxyManager
 
     public bool HasProxies => _proxies.Count > 0;
 
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
+
     /// <summary>Get an HttpClient to use for the next outgoing request.</summary>
-    public HttpClient GetClient()
+    public HttpClient GetClient() => GetClient(DefaultTimeout);
+
+    /// <summary>Same, with a custom request timeout - the default 10 seconds is fine for a translation
+    /// API but far too short for a language model, which can take longer than that to answer.</summary>
+    public HttpClient GetClient(TimeSpan timeout)
     {
+        var suffix = "|" + (int)timeout.TotalSeconds;
         if (_proxies.Count == 0)
-            return _clientCache.GetOrAdd("__direct__", _ => CreateClient(null));
+            return _clientCache.GetOrAdd("__direct__" + suffix, _ => CreateClient(null, timeout));
 
         var proxyString = _rotate ? NextProxy() : _proxies[0];
-        return _clientCache.GetOrAdd(proxyString, CreateClient);
+        return _clientCache.GetOrAdd(proxyString + suffix, _ => CreateClient(proxyString, timeout));
     }
 
     /// <summary>Call this when a request fails, so the caller can retry with a different proxy.</summary>
@@ -52,7 +59,7 @@ public sealed class ProxyManager
         return _proxies[((i % _proxies.Count) + _proxies.Count) % _proxies.Count];
     }
 
-    private static HttpClient CreateClient(string? proxyString)
+    private static HttpClient CreateClient(string? proxyString, TimeSpan timeout)
     {
         var handler = new HttpClientHandler();
         if (!string.IsNullOrWhiteSpace(proxyString))
@@ -68,7 +75,7 @@ public sealed class ProxyManager
             handler.Proxy = webProxy;
             handler.UseProxy = true;
         }
-        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
+        var client = new HttpClient(handler) { Timeout = timeout };
         return client;
     }
 }

@@ -4,7 +4,10 @@
         Title="KainoTranslator"
         Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        FontFamily="Segoe UI"
+        Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource BgBrush}">
     <StackPanel Margin="24">
         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="🌐" FontSize="26" Margin="0,0,10,0" VerticalAlignment="Center"/>
@@ -25,7 +28,7 @@
             </StackPanel>
         </Border>
 
-        <TextBlock Margin="0,4,0,4">
+        <TextBlock Margin="0,4,0,4" Foreground="{DynamicResource TextBrush}">
             <Hyperlink NavigateUri="https://github.com/Orvyn/KainoTranslator" RequestNavigate="OnRequestNavigate">github.com/Orvyn/KainoTranslator</Hyperlink>
         </TextBlock>
 

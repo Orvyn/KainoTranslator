@@ -11,6 +11,7 @@ using ScreenTranslator.Models;
 using ScreenTranslator.Onboarding;
 using ScreenTranslator.Overlay;
 using ScreenTranslator.SettingsUi;
+using ScreenTranslator.Themes;
 
 namespace ScreenTranslator;
 
@@ -20,13 +21,14 @@ public partial class App : Application
     private static extern bool GetCursorPos(out System.Drawing.Point lpPoint);
 
     private const string AppDisplayName = "KainoTranslator";
-    public const string AppVersion = "1.5";
+    public const string AppVersion = "2.0";
 
     private AppSettings _settings = null!;
     private TranslationEngine _engine = null!;
     private HotkeyManager _hotkeys = null!;
     private IDisposable? _hoverTriggerHook; // BareKeyHook or BareMouseButtonHook, whichever HoverTranslate.TriggerKey resolves to
     private LeftClickWatcher? _leftClickWatcher;
+    private DismissKeyWatcher? _dismissKeyWatcher;
     private System.Windows.Forms.ToolStripMenuItem? _hoverTrayMenuItem;
     private bool _suppressHoverTrayToggle;
     // Remembered so unchecking then rechecking the tray item restores it instead of forcing a
@@ -35,6 +37,8 @@ public partial class App : Application
     // key/mouse-button trigger can run into in some games (see Settings.HoverSectionHint).
     private string _lastHoverTriggerKey = "Ctrl+F";
     private OverlayWindow _overlay = null!;
+    private static Mutex? s_singleInstance; // kept for the life of the process, so it isn't collected
+    private ReplaceOverlayWindow _replaceOverlay = null!; // the "replace text" display mode - see Overlay/ReplaceOverlayWindow
     private System.Windows.Forms.NotifyIcon _trayIcon = null!;
     private SettingsWindow? _settingsWindow;
     private DispatcherTimer? _autoHideTimer;
@@ -47,12 +51,27 @@ public partial class App : Application
         _settings = AppSettings.Load();
         Loc.Current = _settings.UiLanguage == "en" ? AppLanguage.English : AppLanguage.Russian;
 
+        // Two copies at once (say, the new build started while the old one still sits in the tray)
+        // would both read the screen, both translate it and both draw an overlay over the other's -
+        // which looks like flicker and doubles the requests to the translator.
+        s_singleInstance = new Mutex(true, @"Local\KainoTranslator.SingleInstance", out var firstInstance);
+        if (!firstInstance)
+        {
+            System.Windows.MessageBox.Show(Loc.S("App.AlreadyRunning"), AppDisplayName);
+            Shutdown();
+            return;
+        }
+
+        ThemeManager.Apply(ParseThemeMode(_settings.UiTheme));
+
         _overlay = new OverlayWindow();
         _overlay.ApplyStyle(_settings.Overlay);
         _overlay.Hide();
+        _replaceOverlay = new ReplaceOverlayWindow();
 
         _engine = new TranslationEngine(_settings);
         _engine.TextUpdated += OnTextUpdated;
+        _engine.ReplacementUpdated += OnReplacementUpdated;
         _engine.ErrorOccurred += OnEngineError;
         _engine.RunningStateChanged += isRunning => Dispatcher.Invoke(() => _settingsWindow?.SetRunningState(isRunning));
 
@@ -165,6 +184,21 @@ public partial class App : Application
 
         try
         {
+            if (_engine.ReplaceModeActive)
+            {
+                var replacement = await _engine.TranslateOnceReplaceAsync(region, ct);
+                if (ct.IsCancellationRequested) { replacement?.Dispose(); return; }
+
+                if (replacement is null)
+                {
+                    ShowBalloon(AppDisplayName, Loc.S("Balloon.OneTimeNoText"));
+                    return;
+                }
+
+                ShowOneTimeReplacement(replacement);
+                return;
+            }
+
             var translated = await _engine.TranslateOnceAsync(region, ct);
             if (ct.IsCancellationRequested) return;
 
@@ -250,6 +284,13 @@ public partial class App : Application
 
     private static bool IsHoverComboTrigger(string trigger) => trigger.Contains('+');
 
+    private static ThemeMode ParseThemeMode(string value) => value switch
+    {
+        "Light" => ThemeMode.Light,
+        "Dark" => ThemeMode.Dark,
+        _ => ThemeMode.System,
+    };
+
     private static bool TryParseHoverMouseButton(string trigger, out HoverMouseButton button)
     {
         button = default;
@@ -320,6 +361,16 @@ public partial class App : Application
 
         try
         {
+            if (_engine.ReplaceModeActive)
+            {
+                var replacement = await _engine.TranslateBlockAtReplaceAsync(region, cursor, ct);
+                if (ct.IsCancellationRequested) { replacement?.Dispose(); return; }
+                if (replacement is null) return; // stay silent on hover misses, same as below
+
+                ShowOneTimeReplacement(replacement);
+                return;
+            }
+
             var (translated, sourceBounds) = await _engine.TranslateBlockAtAsync(region, cursor, ct);
             if (ct.IsCancellationRequested) return;
             if (string.IsNullOrWhiteSpace(translated)) return; // stay silent on hover misses - a balloon for every empty hover would be noisy
@@ -339,12 +390,17 @@ public partial class App : Application
     ///    the screen it's on, so the translation doesn't land directly on top of the original -
     ///    overlapping it would mean the *next* capture in the same spot picks up a mix of the old
     ///    translation and the new source text.
-    ///  - A left-click anywhere dismisses it immediately (see LeftClickWatcher) instead of only
-    ///    the auto-hide timer, so re-translating the next line of dialogue right after a click
-    ///    doesn't fight with a stale translation still on screen.
+    ///  - A left-click or Space press anywhere dismisses it immediately (see LeftClickWatcher /
+    ///    DismissKeyWatcher), in addition to the auto-hide timer, so re-translating the next line
+    ///    of dialogue right after either doesn't fight with a stale translation still on screen.
+    ///    Optional - Overlay.DismissOnClickOrSpace turns it off for people who click/hit Space
+    ///    often enough during play that this would fire unwanted. Auto-hide itself follows the
+    ///    same "Поведение окна" setting as continuous mode (Overlay.AutoHideEnabled/Seconds); if
+    ///    both settings are off, the overlay only goes away when replaced by the next translate.
     /// </summary>
     private void ShowOneTimeOverlay(Rectangle region, string translated)
     {
+        _replaceOverlay.Hide();
         _overlay.SetText(translated);
         _overlay.Show();
 
@@ -354,10 +410,30 @@ public partial class App : Application
         var position = regionCenterY > screenCenterY ? OverlayPosition.AboveCaptureArea : OverlayPosition.BelowCaptureArea;
         _overlay.PositionRelativeTo(region, position);
 
-        RestartAutoHideTimer(forceSeconds: 8);
+        RestartAutoHideTimer();
+        StartDismissWatchers();
+    }
 
+    /// <summary>Replace-text counterpart of <see cref="ShowOneTimeOverlay"/>: the translation is drawn
+    /// over the source text itself, so there's no above/below placement to pick. Closes the same way
+    /// (auto-hide, left click, Space).</summary>
+    private void ShowOneTimeReplacement(ReplacementFrame frame)
+    {
+        _overlay.Hide();
+        try { _replaceOverlay.Present(frame, _settings.Overlay); }
+        finally { frame.Dispose(); }
+
+        RestartAutoHideTimer();
+        StartDismissWatchers();
+    }
+
+    private void StartDismissWatchers()
+    {
+        if (!_settings.Overlay.DismissOnClickOrSpace) return;
         _leftClickWatcher ??= CreateLeftClickWatcher();
         _leftClickWatcher.Start();
+        _dismissKeyWatcher ??= CreateDismissKeyWatcher();
+        _dismissKeyWatcher.Start();
     }
 
     private LeftClickWatcher CreateLeftClickWatcher()
@@ -367,11 +443,20 @@ public partial class App : Application
         return watcher;
     }
 
+    private DismissKeyWatcher CreateDismissKeyWatcher()
+    {
+        var watcher = new DismissKeyWatcher();
+        watcher.Pressed += () => Dispatcher.Invoke(DismissOneTimeOverlay);
+        return watcher;
+    }
+
     private void DismissOneTimeOverlay()
     {
         _autoHideTimer?.Stop();
         _overlay.Hide();
+        _replaceOverlay.Hide();
         _leftClickWatcher?.Stop();
+        _dismissKeyWatcher?.Stop();
     }
 
     private void OpenSettings()
@@ -389,7 +474,15 @@ public partial class App : Application
         {
             _settings = updated;
             Loc.Current = _settings.UiLanguage == "en" ? AppLanguage.English : AppLanguage.Russian;
+            ThemeManager.Apply(ParseThemeMode(_settings.UiTheme));
             _overlay.ApplyStyle(_settings.Overlay);
+            if (!_settings.Overlay.DismissOnClickOrSpace)
+            {
+                // Take effect immediately rather than waiting for the current one-off overlay (if
+                // any) to be dismissed some other way first.
+                _leftClickWatcher?.Stop();
+                _dismissKeyWatcher?.Stop();
+            }
             RegisterHotkeys();
             ApplyHoverTranslateSetting();
             if (!string.IsNullOrWhiteSpace(_settings.HoverTranslate.TriggerKey))
@@ -401,6 +494,11 @@ public partial class App : Application
                 _suppressHoverTrayToggle = false;
             }
             await _engine.ApplySettingsAsync(_settings);
+
+            if (_settings.Overlay.DisplayMode == OverlayDisplayMode.ReplaceText && !_engine.ReplaceModeActive)
+                ShowBalloon(AppDisplayName, Loc.S("Balloon.ReplaceUnavailable"));
+            else if (_settings.Overlay.DisplayMode == OverlayDisplayMode.Panel)
+                _replaceOverlay.Hide();
         };
         _settingsWindow.Closed += (_, _) => ShowBalloon(AppDisplayName, Loc.S("Balloon.StillRunning"));
         _settingsWindow.Show();
@@ -411,7 +509,8 @@ public partial class App : Application
     {
         Dispatcher.Invoke(() =>
         {
-            _leftClickWatcher?.Stop(); // this overlay update is from continuous mode, not a one-off/hover result - click-to-dismiss only applies to those
+            _leftClickWatcher?.Stop(); // this overlay update is from continuous mode, not a one-off/hover result - click/Space-to-dismiss only applies to those
+            _dismissKeyWatcher?.Stop();
 
             if (string.IsNullOrWhiteSpace(translated))
             {
@@ -428,11 +527,44 @@ public partial class App : Application
         });
     }
 
+    /// <summary>Continuous mode in the replace-text display: draws the translated blocks over the source
+    /// text, or takes them down when the frame is null.</summary>
+    private void OnReplacementUpdated(ReplacementFrame? frame)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _leftClickWatcher?.Stop(); // same as OnTextUpdated: click/Space-to-dismiss is for one-off results only
+            _dismissKeyWatcher?.Stop();
+
+            if (frame is null)
+            {
+                _replaceOverlay.Hide();
+                _autoHideTimer?.Stop();
+                return;
+            }
+
+            try
+            {
+                _overlay.Hide();
+                _replaceOverlay.Present(frame, _settings.Overlay);
+            }
+            finally
+            {
+                frame.Dispose();
+            }
+
+            // No auto-hide here: the overlay sits on the source text and the engine takes it down
+            // itself when that text goes away. An auto-hide timeout would just make it vanish while
+            // the original is still on screen (and nothing would ever bring it back).
+            _autoHideTimer?.Stop();
+        });
+    }
+
     /// <summary>(Re)starts the auto-hide countdown if enabled in settings; a fresh line of text always resets the timer.</summary>
-    private void RestartAutoHideTimer(int? forceSeconds = null)
+    private void RestartAutoHideTimer()
     {
         _autoHideTimer?.Stop();
-        var seconds = forceSeconds ?? (_settings.Overlay.AutoHideEnabled ? _settings.Overlay.AutoHideSeconds : (int?)null);
+        var seconds = _settings.Overlay.AutoHideEnabled ? _settings.Overlay.AutoHideSeconds : (int?)null;
         if (seconds is null or <= 0) return;
 
         _autoHideTimer ??= new DispatcherTimer();
@@ -446,10 +578,25 @@ public partial class App : Application
     {
         _autoHideTimer?.Stop();
         _overlay.Hide();
+        _replaceOverlay.Hide();
         _leftClickWatcher?.Stop();
+        _dismissKeyWatcher?.Stop();
     }
 
-    private void OnEngineError(string message) => Dispatcher.Invoke(() => ShowBalloon(AppDisplayName, message));
+    private string? _lastErrorMessage;
+    private DateTime _lastErrorAt;
+
+    // The same error tends to repeat on every poll (a translator rate-limiting us, say). Windows
+    // queues balloon notifications and keeps showing them one after another - even after the app
+    // is closed - so an identical message is only shown once a minute.
+    private void OnEngineError(string message) => Dispatcher.Invoke(() =>
+    {
+        var now = DateTime.UtcNow;
+        if (message == _lastErrorMessage && now - _lastErrorAt < TimeSpan.FromSeconds(60)) return;
+        _lastErrorMessage = message;
+        _lastErrorAt = now;
+        ShowBalloon(AppDisplayName, message);
+    });
 
     private static System.Drawing.Icon GetAppIcon()
     {
@@ -538,6 +685,8 @@ public partial class App : Application
         _hotkeys?.Dispose();
         _hoverTriggerHook?.Dispose();
         _leftClickWatcher?.Dispose();
+        _dismissKeyWatcher?.Dispose();
+        ThemeManager.Unsubscribe();
         _engine?.Dispose();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();

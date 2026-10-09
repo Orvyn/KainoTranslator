@@ -6,10 +6,11 @@ namespace ScreenTranslator.Hotkeys;
 /// <summary>
 /// Fires on every left mouse button click anywhere on screen, without ever swallowing the click -
 /// whatever's under the cursor (game, desktop, etc.) still receives it exactly as if this weren't
-/// running. Used to dismiss a one-off/hover-translate overlay on the next click: that overlay has
-/// no close button (it's click-through) and would otherwise sit on screen - directly over the
-/// original text - until its auto-hide timer runs out, which gets in the way of capturing the
-/// *next* line of dialogue in the same spot.
+/// running. Sibling to <see cref="DismissKeyWatcher"/> (Space instead of a click). Used to
+/// dismiss a one-off/hover-translate overlay early: that overlay has no close button (it's
+/// click-through) and would otherwise sit on screen - directly over the original text - until its
+/// auto-hide timer runs out, which gets in the way of capturing the *next* line of dialogue in
+/// the same spot.
 /// </summary>
 public sealed class LeftClickWatcher : IDisposable
 {

@@ -1,11 +1,61 @@
 <Window x:Class="ScreenTranslator.SettingsUi.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:ui="clr-namespace:ScreenTranslator.SettingsUi"
         Title="KainoTranslator"
         Width="700" Height="700"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanResizeWithGrip">
-    <DockPanel Margin="16">
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        FontFamily="Segoe UI"
+        Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource BgBrush}">
+    <!-- No native Windows title bar - see the custom strip below instead. WindowChrome (rather
+         than plain WindowStyle="None") keeps real OS behavior that a fully custom window would
+         otherwise lose: edge/corner resize, Aero snap, and double-click-to-maximize on the
+         caption area. CaptionHeight covers exactly that strip; the window buttons inside it
+         still need WindowChrome.IsHitTestVisibleInChrome="True" individually, since a caption
+         region normally swallows clicks as "drag" otherwise. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="34" ResizeBorderThickness="6" GlassFrameThickness="0,1,0,0" CornerRadius="0"/>
+    </shell:WindowChrome.WindowChrome>
+    <DockPanel>
+
+        <!-- Custom title strip, replacing the OS one: app mark + name on the same background as
+             the rest of the window (no separate toolbar color), window buttons drawn as plain
+             glyphs instead of native chrome. -->
+        <Grid DockPanel.Dock="Top" Height="34">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="14,0,0,0" VerticalAlignment="Center">
+                <Border Width="18" Height="18" CornerRadius="5" Background="{DynamicResource AccentBrush}">
+                    <TextBlock Text="K" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Stretch">
+                <Button x:Name="MinimizeWindowButton" Style="{StaticResource WindowGlyphButton}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMinimizeWindowClick">
+                    <Path Data="M0,5 L10,5" Stroke="{DynamicResource SubTextBrush}" StrokeThickness="1.2"/>
+                </Button>
+                <Button x:Name="MaximizeRestoreWindowButton" Style="{StaticResource WindowGlyphButton}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMaximizeRestoreWindowClick">
+                    <Path x:Name="MaximizeRestoreGlyph" Data="M0,0 L10,0 L10,10 L0,10 Z"
+                          Stroke="{DynamicResource SubTextBrush}" StrokeThickness="1.2"/>
+                </Button>
+                <Button x:Name="CloseWindowButton" Style="{StaticResource WindowGlyphButtonClose}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnCloseClick">
+                    <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource SubTextBrush}" StrokeThickness="1.2"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <DockPanel Margin="16,0,16,16">
 
         <!-- Header -->
         <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
@@ -15,7 +65,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Orientation="Horizontal" Grid.Column="0">
-                <TextBlock Text="🌐" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <TextBlock Text="🌐" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                 <StackPanel>
                     <TextBlock Text="KainoTranslator" Style="{StaticResource H1}"/>
                     <TextBlock x:Name="SubtitleText" Style="{StaticResource Hint}" Margin="0"/>
@@ -44,7 +94,7 @@
         <TabControl BorderThickness="0" Background="Transparent">
 
             <!-- ===================== ПЕРЕВОД (OCR + переводчик объединены) ===================== -->
-            <TabItem x:Name="TranslationTab">
+            <TabItem x:Name="TranslationTab" Tag="🔤">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
 
@@ -53,7 +103,7 @@
                             <TextBlock x:Name="OcrEngineHeaderText" Style="{StaticResource H2}"/>
                             <ComboBox x:Name="OcrEngineCombo" Margin="0,0,0,4" SelectionChanged="OnOcrEngineChanged"/>
                             <TextBlock x:Name="OcrEngineHint" Style="{StaticResource Hint}"/>
-                            <TextBlock x:Name="WindowsOcrLinkBlock">
+                            <TextBlock x:Name="WindowsOcrLinkBlock" Foreground="{DynamicResource TextBrush}">
                                 <Hyperlink x:Name="WindowsOcrLink" NavigateUri="ms-settings:regionlanguage" RequestNavigate="LinkOpener_OnRequestNavigate"/>
                             </TextBlock>
                         </StackPanel>
@@ -85,14 +135,14 @@
                     <Border x:Name="DeepLCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="DeepLHeaderText" Style="{StaticResource H2}"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Run x:Name="DeepLGetKeyRun"/>
                                 <Hyperlink NavigateUri="https://www.deepl.com/pro-api" RequestNavigate="LinkOpener_OnRequestNavigate">deepl.com/pro-api</Hyperlink>
                             </TextBlock>
                             <TextBlock x:Name="DeepLApiKeyLabel" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="DeepLKeyBox" Margin="0,0,0,6"/>
+                            <ui:SecretTextBox x:Name="DeepLKeyBox" Margin="0,0,0,6"/>
                             <CheckBox x:Name="DeepLProCheck">
-                                <TextBlock x:Name="DeepLProText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="DeepLProText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -102,11 +152,11 @@
                         <StackPanel>
                             <TextBlock x:Name="GoogleHeaderText" Style="{StaticResource H2}"/>
                             <TextBlock x:Name="GoogleHintText" Style="{StaticResource Hint}" Margin="0,0,0,6"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Hyperlink x:Name="GoogleGetKeyLink" NavigateUri="https://cloud.google.com/translate/docs/setup" RequestNavigate="LinkOpener_OnRequestNavigate"/>
                             </TextBlock>
                             <TextBlock x:Name="GoogleApiKeyLabel" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="GoogleKeyBox"/>
+                            <ui:SecretTextBox x:Name="GoogleKeyBox"/>
                         </StackPanel>
                     </Border>
 
@@ -114,12 +164,12 @@
                     <Border x:Name="YandexCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="YandexHeaderText" Style="{StaticResource H2}"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Run x:Name="YandexGetKeyRun"/>
                                 <Hyperlink NavigateUri="https://yandex.cloud/en/docs/translate/quickstart" RequestNavigate="LinkOpener_OnRequestNavigate">yandex.cloud (Translate quickstart)</Hyperlink>
                             </TextBlock>
                             <TextBlock x:Name="YandexApiKeyLabel" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="YandexKeyBox" Margin="0,0,0,6"/>
+                            <ui:SecretTextBox x:Name="YandexKeyBox" Margin="0,0,0,6"/>
                             <TextBlock x:Name="YandexFolderIdLabel" Style="{StaticResource Label}"/>
                             <TextBox x:Name="YandexFolderBox"/>
                         </StackPanel>
@@ -129,15 +179,61 @@
                     <Border x:Name="PapagoCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="PapagoHeaderText" Style="{StaticResource H2}"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Run x:Name="PapagoGetKeyRun"/>
                                 <Hyperlink NavigateUri="https://www.ncloud.com/product/aiService/papago" RequestNavigate="LinkOpener_OnRequestNavigate">ncloud.com (Papago NMT)</Hyperlink>
                             </TextBlock>
                             <TextBlock x:Name="PapagoClientIdLabel" Style="{StaticResource Label}"/>
                             <TextBox x:Name="PapagoIdBox" Margin="0,0,0,6"/>
                             <TextBlock x:Name="PapagoClientSecretLabel" Style="{StaticResource Label}"/>
-                            <TextBox x:Name="PapagoSecretBox" Margin="0,0,0,6"/>
+                            <ui:SecretTextBox x:Name="PapagoSecretBox" Margin="0,0,0,6"/>
                             <TextBlock x:Name="PapagoHintText" Style="{StaticResource Hint}" Margin="0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- OpenAI-совместимый -->
+                    <Border x:Name="OpenAiCompatibleCard" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock x:Name="OpenAiCompatibleHeaderText" Style="{StaticResource H2}"/>
+                            <TextBlock x:Name="OpenAiCompatibleHintText" Style="{StaticResource Hint}" Margin="0,0,0,10"/>
+
+                            <TextBlock x:Name="OpenAiCompatibleProviderLabel" Style="{StaticResource Label}"/>
+                            <ComboBox x:Name="OpenAiCompatibleProviderCombo" Margin="0,0,0,10"
+                                      SelectionChanged="OnOpenAiCompatibleProviderChanged"/>
+
+                            <TextBlock x:Name="OpenAiCompatibleKeyLabel" Style="{StaticResource Label}"/>
+                            <ui:SecretTextBox x:Name="OpenAiCompatibleKeyBox" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="OpenAiCompatibleKeyLinkBlock" Margin="0,0,0,10" Foreground="{DynamicResource TextBrush}">
+                                <Hyperlink x:Name="OpenAiCompatibleKeyLink" RequestNavigate="LinkOpener_OnRequestNavigate">
+                                    <Run x:Name="OpenAiCompatibleKeyLinkRun"/>
+                                </Hyperlink>
+                            </TextBlock>
+
+                            <StackPanel x:Name="OpenAiCompatibleUrlPanel">
+                                <TextBlock x:Name="OpenAiCompatibleUrlLabel" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="OpenAiCompatibleUrlBox" Margin="0,0,0,10"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="OpenAiCompatibleModelLabel" Style="{StaticResource Label}"/>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="OpenAiCompatibleModelCombo" Grid.Column="0" IsEditable="True" Margin="0,0,8,0"/>
+                                <Button x:Name="OpenAiCompatibleRefreshModelsButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                        Padding="12,0" Click="OnRefreshOpenAiCompatibleModelsClick">
+                                    <TextBlock x:Name="OpenAiCompatibleRefreshModelsText"/>
+                                </Button>
+                            </Grid>
+                            <TextBlock x:Name="OpenAiCompatibleModelHintText" Style="{StaticResource Hint}" Margin="0"/>
+
+                            <TextBlock x:Name="AiContextLabel" Style="{StaticResource Label}" Margin="0,16,0,0"/>
+                            <TextBox x:Name="AiContextBox" Margin="0,0,0,2" MinHeight="56" MaxLength="500"
+                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                            <TextBlock x:Name="AiContextHintText" Style="{StaticResource Hint}" Margin="0,0,0,10"/>
+                            <CheckBox x:Name="AiUseGlossaryCheck" Margin="0,0,0,6"/>
+                            <CheckBox x:Name="AiUseHistoryCheck"/>
                         </StackPanel>
                     </Border>
 
@@ -145,12 +241,12 @@
                         <StackPanel>
                             <TextBlock x:Name="PollingHeaderText" Style="{StaticResource H2}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock x:Name="PollingPrefixText" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PollingPrefixText" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                 <TextBox x:Name="PollingIntervalBox" Width="60" Margin="6,0" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="SecondsText1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SecondsText1" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                             </StackPanel>
                             <CheckBox x:Name="SkipUnchangedCheck">
-                                <TextBlock x:Name="SkipUnchangedText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="SkipUnchangedText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -159,7 +255,7 @@
                         <StackPanel>
                             <TextBlock x:Name="BehaviorHeaderText" Style="{StaticResource H2}"/>
                             <CheckBox x:Name="AutoStartAfterRegionSelectCheck">
-                                <TextBlock x:Name="AutoStartText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="AutoStartText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -168,7 +264,7 @@
             </TabItem>
 
             <!-- ===================== ГОРЯЧИЕ КЛАВИШИ ===================== -->
-            <TabItem x:Name="HotkeysTab">
+            <TabItem x:Name="HotkeysTab" Tag="⌨">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
                     <Border Style="{StaticResource Card}">
@@ -225,10 +321,19 @@
             </TabItem>
 
             <!-- ===================== ОФОРМЛЕНИЕ ===================== -->
-            <TabItem x:Name="AppearanceTab">
+            <TabItem x:Name="AppearanceTab" Tag="🎨">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
                     <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock x:Name="DisplayModeHeaderText" Style="{StaticResource H2}"/>
+                            <RadioButton x:Name="DisplayModePanelRadio" GroupName="DisplayMode" Checked="OnDisplayModeChanged"/>
+                            <RadioButton x:Name="DisplayModeReplaceRadio" GroupName="DisplayMode" Checked="OnDisplayModeChanged"/>
+                            <TextBlock x:Name="DisplayModeHintText" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="PositionCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="PositionSizeHeaderText" Style="{StaticResource H2}"/>
 
@@ -236,18 +341,18 @@
                             <ComboBox x:Name="OverlayPositionCombo" Margin="0,0,0,12"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                <TextBlock x:Name="FontSizeLabel" VerticalAlignment="Center" Width="140"/>
+                                <TextBlock x:Name="FontSizeLabel" VerticalAlignment="Center" Width="140" Foreground="{DynamicResource TextBrush}"/>
                                 <TextBox x:Name="FontSizeBox" Width="60"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock x:Name="MaxWidthLabel" VerticalAlignment="Center" Width="140"/>
+                                <TextBlock x:Name="MaxWidthLabel" VerticalAlignment="Center" Width="140" Foreground="{DynamicResource TextBrush}"/>
                                 <TextBox x:Name="MaxWidthBox" Width="60"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource Card}">
+                    <Border x:Name="ColorCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="ColorHeaderText" Style="{StaticResource H2}"/>
 
@@ -255,7 +360,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <TextBox x:Name="TextColorBox" Width="120" TextChanged="OnTextColorChanged"/>
                                 <Border x:Name="TextColorPreview" Width="26" Height="26" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" Cursor="Hand"
+                                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1" Cursor="Hand"
                                         MouseLeftButtonDown="OnPickTextColorClick"/>
                             </StackPanel>
 
@@ -263,7 +368,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <TextBox x:Name="BgColorBox" Width="120" TextChanged="OnBgColorChanged"/>
                                 <Border x:Name="BgColorPreview" Width="26" Height="26" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" Cursor="Hand"
+                                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1" Cursor="Hand"
                                         MouseLeftButtonDown="OnPickBgColorClick"/>
                             </StackPanel>
 
@@ -289,17 +394,21 @@
                         <StackPanel>
                             <TextBlock x:Name="WindowBehaviorHeaderText" Style="{StaticResource H2}"/>
                             <CheckBox x:Name="ClickThroughCheck" Margin="0,0,0,10">
-                                <TextBlock x:Name="ClickThroughText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="ClickThroughText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
 
                             <CheckBox x:Name="AutoHideCheck" Checked="OnAutoHideCheckChanged" Unchecked="OnAutoHideCheckChanged">
-                                <TextBlock x:Name="AutoHideText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="AutoHideText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                             <StackPanel Orientation="Horizontal" Margin="24,6,0,0">
-                                <TextBlock x:Name="AutoHidePrefixText" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="AutoHidePrefixText" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                 <TextBox x:Name="AutoHideSecondsBox" Width="50" Margin="6,0" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="SecondsText2" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SecondsText2" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                             </StackPanel>
+
+                            <CheckBox x:Name="DismissOnClickOrSpaceCheck" Margin="0,10,0,0">
+                                <TextBlock x:Name="DismissOnClickOrSpaceText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
+                            </CheckBox>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -307,7 +416,7 @@
             </TabItem>
 
             <!-- ===================== ГЛОССАРИЙ ===================== -->
-            <TabItem x:Name="GlossaryTab">
+            <TabItem x:Name="GlossaryTab" Tag="📖">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
                     <Border Style="{StaticResource Card}">
@@ -375,21 +484,25 @@
             </TabItem>
 
             <!-- ===================== ПРОЧЕЕ ===================== -->
-            <TabItem x:Name="OtherTab">
+            <TabItem x:Name="OtherTab" Tag="⚙">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4,12,4,4">
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="LanguageHeaderText" Style="{StaticResource H2}"/>
                             <ComboBox x:Name="UiLanguageCombo" Margin="0,0,0,4"/>
-                            <TextBlock x:Name="LanguageHintText" Style="{StaticResource Hint}" Margin="0"/>
+                            <TextBlock x:Name="LanguageHintText" Style="{StaticResource Hint}" Margin="0,2,0,14"/>
+
+                            <TextBlock x:Name="ThemeLabel" Style="{StaticResource Label}"/>
+                            <ComboBox x:Name="ThemeCombo" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="ThemeHintText" Style="{StaticResource Hint}" Margin="0"/>
                         </StackPanel>
                     </Border>
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="TesseractHeaderText" Style="{StaticResource H2}"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Run x:Name="TesseractGetFilesRun"/>
                                 <Hyperlink NavigateUri="https://github.com/tesseract-ocr/tessdata_fast" RequestNavigate="LinkOpener_OnRequestNavigate">tessdata_fast on GitHub</Hyperlink>
                             </TextBlock>
@@ -404,7 +517,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock x:Name="EasyOcrHeaderText" Style="{StaticResource H2}"/>
-                            <TextBlock Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,0,6" Foreground="{DynamicResource TextBrush}">
                                 <Run x:Name="EasyOcrNeedPythonRun"/>
                                 <Hyperlink NavigateUri="https://www.python.org/downloads/" RequestNavigate="LinkOpener_OnRequestNavigate">python.org/downloads</Hyperlink>
                                 <Run x:Name="EasyOcrThenRunRun"/>
@@ -415,7 +528,7 @@
                                 <Button Content="..." Width="36" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="OnBrowseEasyOcrPythonClick"/>
                             </StackPanel>
                             <CheckBox x:Name="EasyOcrGpuCheck">
-                                <TextBlock x:Name="EasyOcrGpuText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="EasyOcrGpuText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -424,7 +537,7 @@
                         <StackPanel>
                             <TextBlock x:Name="StartupHeaderText" Style="{StaticResource H2}"/>
                             <CheckBox x:Name="RunAtStartupCheck">
-                                <TextBlock x:Name="RunAtStartupText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="RunAtStartupText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -435,7 +548,7 @@
                             <TextBlock x:Name="ProxyHintText" Style="{StaticResource Hint}"/>
                             <TextBox x:Name="ProxyListBox" AcceptsReturn="True" TextWrapping="Wrap" Height="140" VerticalScrollBarVisibility="Auto" FontFamily="Consolas"/>
                             <CheckBox x:Name="RotateProxyCheck" Margin="0,8,0,0">
-                                <TextBlock x:Name="RotateProxyText" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="RotateProxyText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
                             </CheckBox>
                         </StackPanel>
                     </Border>
@@ -444,5 +557,6 @@
             </TabItem>
 
         </TabControl>
+        </DockPanel>
     </DockPanel>
 </Window>

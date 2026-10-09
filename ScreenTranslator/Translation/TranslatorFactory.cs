@@ -13,6 +13,9 @@ public static class TranslatorFactory
             TranslatorKind.Google => new GoogleTranslator(settings.ApiKeys.GoogleApiKey, proxies),
             TranslatorKind.Yandex => new YandexTranslator(settings.ApiKeys.YandexApiKey, settings.ApiKeys.YandexFolderId, proxies),
             TranslatorKind.Papago => new PapagoTranslator(settings.ApiKeys.PapagoClientId, settings.ApiKeys.PapagoClientSecret, proxies),
+            TranslatorKind.OpenAiCompatible => new OpenAiCompatibleTranslator(
+                OpenAiCompatiblePresets.ResolveBaseUrl(settings.ApiKeys.OpenAiCompatibleProvider, settings.ApiKeys.OpenAiCompatibleBaseUrl),
+                settings.ApiKeys.OpenAiCompatibleModel, settings.ApiKeys.OpenAiCompatibleApiKey, proxies),
             _ => new DeepLTranslator(settings.ApiKeys.DeepLApiKey, settings.ApiKeys.DeepLUseProEndpoint, proxies)
         };
     }

@@ -36,8 +36,19 @@ public enum TextOutlineMode
     Shadow
 }
 
+public enum OverlayDisplayMode
+{
+    // The classic translation panel (a box with the translated text).
+    Panel,
+    // The source text is blurred out on screen and the translation is drawn in its place.
+    // Needs an OCR engine that reports line positions (Windows OCR); otherwise the panel is used.
+    ReplaceText
+}
+
 public sealed class OverlaySettings
 {
+    public OverlayDisplayMode DisplayMode { get; set; } = OverlayDisplayMode.Panel;
+
     public double FontSize { get; set; } = 26;
     public string FontFamily { get; set; } = "Segoe UI";
     public string TextColor { get; set; } = "#FFFFFF";        // plain RGB, always fully opaque
@@ -55,6 +66,13 @@ public sealed class OverlaySettings
 
     public bool AutoHideEnabled { get; set; } = false;
     public int AutoHideSeconds { get; set; } = 5;
+
+    // Whether a left click or Space press anywhere dismisses the one-off/hover-translate overlay
+    // early (see LeftClickWatcher / DismissKeyWatcher in App.HoverTranslate/ShowOneTimeOverlay).
+    // On by default, matching the behavior before this was made optional; some people click or
+    // hit Space often enough during normal play that an unwanted dismissal is more annoying than
+    // useful, so this lets them fall back to auto-hide/the next translate replacing it instead.
+    public bool DismissOnClickOrSpace { get; set; } = true;
 }
 
 public sealed class HotkeyBinding
@@ -126,6 +144,24 @@ public sealed class ApiKeySettings
 
     public string PapagoClientId { get; set; } = "";
     public string PapagoClientSecret { get; set; } = "";
+
+    // For any provider implementing the OpenAI chat-completions API - see
+    // Translation/OpenAiCompatiblePresets.cs for the known providers' base URLs and
+    // Translation/OpenAiCompatibleTranslator.cs for exactly what gets sent.
+    // "Gemini" | "DeepSeek" | "OpenAI" | "Custom" - see OpenAiCompatiblePresets.
+    public string OpenAiCompatibleProvider { get; set; } = OpenAiCompatiblePresets.Gemini;
+    public string OpenAiCompatibleBaseUrl { get; set; } = ""; // only meaningful/used when Provider == Custom
+    public string OpenAiCompatibleModel { get; set; } = "";
+    public string OpenAiCompatibleApiKey { get; set; } = "";
+}
+
+/// <summary>Options that only apply when translating through the AI (OpenAI-compatible) service.</summary>
+public sealed class AiTranslationSettings
+{
+    /// <summary>Free-form description of what is being translated (game, genre, tone).</summary>
+    public string GameContext { get; set; } = "";
+    public bool UseGlossary { get; set; } = true;
+    public bool UseDialogueHistory { get; set; } = true;
 }
 
 public sealed class AppSettings
@@ -145,6 +181,7 @@ public sealed class AppSettings
     public HotkeySettings Hotkeys { get; set; } = new();
     public HoverTranslateSettings HoverTranslate { get; set; } = new();
     public ApiKeySettings ApiKeys { get; set; } = new();
+    public AiTranslationSettings Ai { get; set; } = new();
 
     public List<string> ProxyList { get; set; } = new(); // "http://user:pass@host:port" or "host:port"
     public bool RotateProxyPerRequest { get; set; } = true;
@@ -157,6 +194,10 @@ public sealed class AppSettings
     public bool RunAtWindowsStartup { get; set; } = false;
     public bool ShowWelcomeOnStartup { get; set; } = true;
     public string UiLanguage { get; set; } = "ru"; // "ru" or "en"
+
+    // "System" (follows Windows' light/dark setting live), "Light", or "Dark" - see
+    // Themes.ThemeManager, which reads/applies this.
+    public string UiTheme { get; set; } = "System";
 
     public List<GlossaryProfile> GlossaryProfiles { get; set; } = new();
     public string ActiveGlossaryProfileId { get; set; } = "";

@@ -55,6 +55,42 @@ public static class TextBlockLocator
         return InReadingOrder(block);
     }
 
+    /// <summary>Splits every recognized line into blocks (same rules as <see cref="FindBlockAt"/>),
+    /// each in reading order, the blocks themselves top to bottom. Used by the replace-text mode,
+    /// which has to redraw every block in the captured area, not just the one under the cursor.</summary>
+    public static List<List<OcrTextLine>> GroupIntoBlocks(IReadOnlyList<OcrTextLine> lines)
+    {
+        var remaining = lines
+            .Where(l => !string.IsNullOrWhiteSpace(l.Text) && l.Bounds.Width > 0 && l.Bounds.Height > 0)
+            .ToList();
+
+        var blocks = new List<List<OcrTextLine>>();
+        while (remaining.Count > 0)
+        {
+            var block = new List<OcrTextLine> { remaining[0] };
+            remaining.RemoveAt(0);
+
+            var grew = true;
+            while (grew)
+            {
+                grew = false;
+                for (var i = remaining.Count - 1; i >= 0; i--)
+                {
+                    var line = remaining[i];
+                    if (block.Any(b => AreSameBlock(b.Bounds, line.Bounds)))
+                    {
+                        block.Add(line);
+                        remaining.RemoveAt(i);
+                        grew = true;
+                    }
+                }
+            }
+            blocks.Add(InReadingOrder(block));
+        }
+
+        return blocks.OrderBy(b => b.Min(l => l.Bounds.Top)).ToList();
+    }
+
     private static double DistanceToRect(Rectangle r, Point p)
     {
         double dx = Math.Max(Math.Max(r.Left - p.X, 0), p.X - r.Right);

@@ -9,7 +9,7 @@ captions, or any on-screen foreign text.
 - Pick a capture area with a hotkey, toggle live translation with a hotkey, open settings with a hotkey.
 - Reads text with **Windows OCR** (recommended default, built into Windows, no setup), or the
   legacy **Tesseract** / **EasyOCR** engines if you prefer them.
-- Translates with **DeepL**, **Google Translate**, **Yandex Translate**, or **Papago**.
+- Translates with **DeepL**, **Google Translate**, **Yandex Translate**, **Papago**, or any **OpenAI-compatible** provider (Gemini, DeepSeek, OpenAI, local models).
 - Strong support for English, Japanese, Chinese (Simplified & Traditional), Korean, and
   Russian, plus ~25 more languages (French, German, Spanish, Italian, Portuguese, Dutch,
   Polish, Turkish, Vietnamese, Thai, Indonesian, Arabic, Hindi, Ukrainian, and most other
@@ -18,10 +18,17 @@ captions, or any on-screen foreign text.
   getting IP-rate-limited under heavy use.
 - Click-through, borderless-friendly overlay designed to sit on top of games without stealing
   focus or input.
+- Two ways to show a translation: in a separate window, or as an **overlay** that blurs the
+  original text on screen and draws the translation exactly where it was (the speaker's name is
+  set apart in bold).
+- AI translators (OpenAI-compatible) take a **glossary**, a short description of the game and the
+  previous dialogue lines into account; a glossary of fixed translations for names and terms
+  works with every translator.
+- Light and dark themes (follows Windows by default); the interface is in Russian or English.
 
-> **Note:** the app's interface itself is currently Russian-only. Tab/menu names below are
-> given as they literally appear in the app (Russian), with an English translation in
-> parentheses the first time each one is mentioned.
+> **Note:** the app's interface is available in Russian and English (**Settings > Прочее**
+> (Other)). Tab/menu names below are given as they appear in the Russian interface, with an
+> English translation in parentheses the first time each one is mentioned.
 
 ## Requirements
 
@@ -53,14 +60,22 @@ There's no window on launch by design; if you don't see the tray icon, check the
 | Start / stop live translation        | `Ctrl+Shift+S`  |
 | Translate an area once (one-off)     | `Ctrl+Shift+D`  |
 | Open settings                        | `Ctrl+Shift+O`  |
+| Re-translate the current area        | `Ctrl+Shift+R`  |
 
-All four are changeable in **Settings > Горячие клавиши** (Hotkeys) — click the box and press your desired
+All of them are changeable in **Settings > Горячие клавиши** (Hotkeys) — click the box and press your desired
 combination (must include at least one modifier key). If a hotkey fails to register (shown as
 a tray balloon notification), another app is already using that combo — pick a different one.
 
 The "translate an area once" hotkey lets you pick any area on screen and translate it a single
 time (e.g. a bit of text that appeared somewhere else on screen) without touching your main
 capture area or interrupting live translation if it's already running.
+
+**Instant translate** needs no area selection: point at some text and press the trigger (a
+key, a mouse button, or a modifier+key combo) and the block of text under the cursor is
+translated. It stays off until you assign a trigger in the **Горячие клавиши** (Hotkeys) tab,
+where you can also choose whether it translates immediately or only after you confirm.
+**Re-translate** (`Ctrl+Shift+R`) runs recognition and translation on the current area again,
+ignoring the cache - handy when a translation came out garbled.
 
 ## First-time setup
 
@@ -96,6 +111,14 @@ capture area or interrupting live translation if it's already running.
 | **Google Translate** | Nothing required | Works immediately via Google's free web endpoint. Add a Cloud Translation API key for guaranteed uptime/quota instead of the free endpoint. |
 | **Yandex Translate** | API key + Folder ID from Yandex Cloud | Both fields are required. |
 | **Papago** | Client ID + Client Secret from the NAVER Cloud Platform console | Papago only supports a limited set of language pairs, mostly routed through Korean/English/Japanese/Chinese — pick a supported target language and it'll only show valid options. |
+| **OpenAI-compatible** | Key (and, for "Other", a URL) | Pick **Gemini** (free tier), **DeepSeek** (paid after trial tokens), **ChatGPT (OpenAI)**, or **Other** for any provider implementing the OpenAI chat-completions API (Groq, a local server like Ollama/LM Studio, etc) with your own URL. A "Refresh list" button fetches the provider's actual available models instead of typing a model id by hand. Translation quality/speed depends on the model you pick. |
+
+**Glossary and AI context.** The **Глоссарий** (Glossary) tab holds fixed translations for
+names and terms, in several profiles that can be exported/imported as `.json`. Plain translators
+get them through placeholders; AI translators (OpenAI-compatible) get them directly, together
+with a short description of what is being translated (**Перевод** (Translation) tab: the game,
+genre, tone) and the previous dialogue lines, so names are inflected correctly and the dialogue
+stays coherent.
 
 ## Proxies
 
@@ -129,6 +152,14 @@ isn't empty) spreads the load across different IPs.
 ## Overlay appearance
 
 **Settings > Оформление** (Appearance) lets you set:
+- Display mode. **In a separate window** (default) shows the translation in a box. **Overlay**
+  blurs the original text on screen and draws the translation in its place, in the original
+  text's colour, with the speaker's name on its own line in bold and an accent colour. Overlay
+  works with Windows OCR only (Windows 10 version 2004 or newer) - with another engine the
+  separate window is used, and the app says so. The position, size and colour settings below
+  belong to the separate window; in overlay mode the translation is drawn click-through over the
+  original and stays as long as the original is on screen (in live translation auto-hide doesn't apply). The
+  outline/shadow setting works in both.
 - Position (default: top-center of the screen), font size, and max width (default 1200px).
 - Text color and background color (hex, e.g. `#FFFFFF`), with a live preview swatch, plus
   background opacity (default 80%).
@@ -162,8 +193,8 @@ KainoTranslator/
   TranslationEngine.cs        - capture -> OCR -> translate -> overlay loop
   Capture/                    - region selection UI + screen capture + frame hashing
   Ocr/                        - IOcrEngine + Windows OCR / Tesseract / EasyOCR implementations
-  Translation/                - ITranslator + DeepL / Google / Yandex / Papago implementations, proxy manager
-  Overlay/                    - the always-on-top translated-text overlay window
+  Translation/                - ITranslator + DeepL / Google / Yandex / Papago / OpenAI-compatible implementations, proxy manager
+  Overlay/                    - the always-on-top windows: the translation box and the in-place overlay (blurs the original text out)
   Hotkeys/                    - global hotkey registration (RegisterHotKey)
   SettingsUi/                 - the Settings window
   Models/                     - AppSettings (persisted to %AppData%\KainoTranslator\settings.json), LanguageCatalog
@@ -184,3 +215,10 @@ KainoTranslator/
   simply does nothing in that game, with no error to point at it. If that happens, bind a
   modifier+key combo instead (e.g. `Ctrl+F`); combos go through the same OS-level mechanism as
   every other hotkey and aren't affected.
+- Overlay mode covers the original with a blurred snapshot of the screen taken when the text was
+  recognized, so an animated background behind the text stays still until the text changes. To
+  keep the number of requests down, only the largest few text blocks in the area are translated.
+- Error 429 from Google's free endpoint means it is rate-limiting your IP. After an error the app
+  waits longer between attempts (up to 30 seconds), shows the same error at most once a minute
+  and tries the same text again only after those pauses. Add proxies or a Cloud Translation API key, slow the
+  polling interval down, or pick another translator.

@@ -30,6 +30,15 @@ public partial class OverlayWindow : Window
     private readonly TextBlock[] _outlineCopies;
     private double _configuredMaxWidth = 900;
 
+    // ApplyStyle (and so ApplyClickThrough) runs once right after the window is constructed, at
+    // startup - before the window has ever been shown and so before its Win32 handle exists. The
+    // SetWindowLong call below is a no-op against a zero handle, so that first call was silently
+    // lost, and whatever the *next* Show() first set via OnSourceInitialized stuck instead. This
+    // field remembers the last requested value regardless of whether a handle existed yet, so
+    // OnSourceInitialized can apply the real configured setting instead of hardcoding "click
+    // through" the first time the window is ever shown.
+    private bool _pendingClickThrough = true;
+
     public OverlayWindow()
     {
         InitializeComponent();
@@ -39,12 +48,16 @@ public partial class OverlayWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        ApplyClickThrough(true);
+        ApplyClickThrough(_pendingClickThrough);
     }
 
     public void ApplyClickThrough(bool enabled)
     {
+        _pendingClickThrough = enabled;
+
         var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return; // no window handle yet - _pendingClickThrough is applied once one exists
+
         var style = GetWindowLong(hwnd, GWL_EXSTYLE);
         style |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
         style = enabled ? (style | WS_EX_TRANSPARENT) : (style & ~WS_EX_TRANSPARENT);
